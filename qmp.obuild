@@ -1,0 +1,9 @@
+name: qmp
+version: 0.0.0
+synopsis: my new project
+obuild-ver: 1
+
+library qmp
+  modules: Qmp
+  src-dir: lib
+  c-dir: ./
