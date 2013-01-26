@@ -38,11 +38,13 @@ type result =
   | Status of string
   | Unit
 
+type id = string
+
 type message =
   | Greeting of greeting
-  | Command of command
-  | Error of string
-  | Success of result
+  | Command of (id option * command)
+  | Error of (id option * string)
+  | Success of (id option * result)
   | Event of event
 
 let message_of_string x =
@@ -64,40 +66,66 @@ let message_of_string x =
       micro = int (List.assoc "micro" version);
       package = package;  
     }
-  | `Assoc [ ("execute", `String "qmp_capabilities") ] -> Command Qmp_capabilities
-  | `Assoc [ ("execute", `String "stop") ] -> Command Stop
-  | `Assoc [ ("execute", `String "query-commands") ] -> Command Query_commands
-  | `Assoc [ ("execute", `String "query-status") ] -> Command Query_status
   | `Assoc list when List.mem_assoc "event" list ->
     let event = string (List.assoc "event" list) in
     let timestamp = assoc (List.assoc "timestamp" list) in
     let secs = int (List.assoc "seconds" timestamp) in
     let usecs = int (List.assoc "microseconds" timestamp) in
     Event { secs; usecs; event }
-  | `Assoc [("return", `Assoc [])] -> Success Unit
-  | `Assoc [("return", `List ((`Assoc [ "name", `String _ ] :: _) as list) )] ->
-    Success (Name_list (List.map (function
-                                  | `Assoc [ "name", `String x ] -> x
-                                  | _ -> failwith "assoc") list))
-(*
-  | `Assoc [("execute", `String "query-kvm"); ("id", `String "example")]
-*)
-  | `Assoc [("execute", `String "eject"); ("arguments", `Assoc [("device", `String device)])] -> Command (Eject device)
-  | `Assoc [("return", `Assoc (("status", `String s) :: _))] -> Success (Status s)
-  | _ ->
-    Error "unimplemented"
+  | `Assoc list when List.mem_assoc "execute" list ->
+    let id = if List.mem_assoc "id" list then Some (string (List.assoc "id" list)) else None in
+    Command (id, (match string (List.assoc "execute" list) with
+      | "qmp_capabilities" -> Qmp_capabilities
+      | "stop" -> Stop
+      | "query-commands" -> Query_commands
+      | "query-status" -> Query_status
+      | "query-kvm" -> Query_kvm
+      | "eject" -> Eject (string (List.assoc "device" (assoc (List.assoc "arguments" list))))
+      | x -> failwith (Printf.sprintf "unknown command %s" x)
+    ))
+  | `Assoc list when List.mem_assoc "return" list ->
+    let id = if List.mem_assoc "id" list then Some (string (List.assoc "id" list)) else None in
+    Success (id, (match List.assoc "return" list with
+      | `Assoc [] -> Unit
+      | `Assoc list when List.mem_assoc "status" list ->
+        Status (string (List.assoc "status" list))
+      | `List ((`Assoc pair :: _) as list) when List.mem_assoc "name" pair ->
+        Name_list (List.map (function
+                             | `Assoc [ "name", `String x ] -> x
+                             | _ -> failwith "assoc") list)
+      | x -> failwith (Printf.sprintf "unknown result %s" (Yojson.Safe.to_string x))
+    ))
+  | x ->
+    failwith (Printf.sprintf "message_of_string %s" (Yojson.Safe.to_string x))
 
-let string_of_message = function
-  | Greeting g -> Printf.sprintf "Greeting { major = %d; minor = %d; micro = %d; package = %s }" g.major g.minor g.micro g.package
-  | Command Qmp_capabilities -> "Command Qmp_capabilities"
-  | Command Stop -> "Command Stop"
-  | Command Query_commands -> "Command Query_commands"
-  | Command Query_status -> "Command Query_status"
-  | Command (Eject device) -> Printf.sprintf "Command Eject %s" device
-  | Event e -> Printf.sprintf "Event { secs = %d; usecs = %d; event = %s }" e.secs e.usecs e.event
-  | Success (Name_list xs) -> Printf.sprintf "Success [ %s ]" (String.concat ", " xs)
-  | Success (Status s) -> Printf.sprintf "Success Status %s" s
-  | Success Unit -> "Success"
-  | _ -> "unimplemented"
+let json_of_message = function
+  | Greeting { major; minor; micro; package } ->
+    let version = [ "major", `Int major; "minor", `Int minor; "micro", `Int micro ] in
+    `Assoc [ ("QMP", `Assoc [ ("version", `Assoc [ "qemu", `Assoc version; "package", `String package ]); ("capabilities", `List []) ])]
+  | Command(id, cmd) ->
+    let id = match id with None -> [] | Some x -> [ "id", `String x ] in
+    let cmd, args = match cmd with
+      | Qmp_capabilities -> "qmp_capabilities", []
+      | Stop -> "stop", []
+      | Query_commands -> "query-commands", []
+      | Query_status -> "query-status", []
+      | Query_kvm -> "query-kvm", []
+      | Eject device -> "eject", [ "device", `String device ] in
+    let args = match args with [] -> [] | args -> [ "arguments", `Assoc args ] in
+    `Assoc (("execute", `String cmd) :: id @ args)
+  | Event {secs; usecs; event} ->
+    `Assoc [("event", `String event); ("timestamp", `Assoc [ "seconds", `Int secs; "microseconds", `Int usecs ])]
+  | Success(id, result) ->
+    let id = match id with None -> [] | Some x -> [ "id", `String x ] in
+    let result = match result with
+      | Unit -> `Assoc []
+      | Status s -> `Assoc [ "status", `String s ]
+      | Name_list xs -> `List (List.map (fun x -> `Assoc [ "name", `String x ]) xs) in
+    `Assoc (("return", result) :: id)
+  | Error(id, e) ->
+    failwith "json_of_message Error"
+
+let string_of_message m = Yojson.Safe.to_string (json_of_message m)
+
 
 

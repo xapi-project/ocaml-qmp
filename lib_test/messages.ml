@@ -18,19 +18,19 @@ open Qmp
 let my_dir = "lib_test"
 
 let files = [
-  "capabilities.json",          Command Qmp_capabilities;
-  "error.json",                 Error "{\"class\": \"JSONParsing\", \"desc\": \"Invalid JSON syntax\", \"data\": {}}";
+  "capabilities.json",          Command (None, Qmp_capabilities);
+  "error.json",                 Error (None, "{\"class\": \"JSONParsing\", \"desc\": \"Invalid JSON syntax\", \"data\": {}}");
   "greeting.json",              Greeting { major = 1; minor = 1; micro = 0; package = " (Debian 1.1.0+dfsg-1)" };
   "powerdown.json",             Event { secs = 1258551470; usecs = 802384; event = "POWERDOWN" };
-  "query-commands.json",        Command Query_commands;
-  "query-commands-return.json", Success (Name_list [ "qom-list-types"; "change-vnc-password" ]);
-  "query_kvm.json",             Command Query_kvm;
-  "query_jvm-return.json",      Success Unit;
-  "stop.json",                  Command Stop;
-  "success.json",               Success Unit;
-  "eject.json",                 Command (Eject "ide1-cd0");
-  "query-status.json",          Command Query_status;
-  "query-status-result.json",   Success (Status "running");
+  "query-commands.json",        Command (None, Query_commands);
+  "query-commands-return.json", Success (None, Name_list [ "qom-list-types"; "change-vnc-password" ]);
+  "query_kvm.json",             Command (Some "example", Query_kvm);
+  "query_jvm-return.json",      Success (None, Unit);
+  "stop.json",                  Command (None, Stop);
+  "success.json",               Success (None, Unit);
+  "eject.json",                 Command (None, Eject "ide1-cd0");
+  "query-status.json",          Command (None, Query_status);
+  "query-status-result.json",   Success (None, Status "running");
   "block-io-error.json",        Event { secs = 1265044230; usecs = 450486; event = "BLOCK_IO_ERROR" };
 ]
 
