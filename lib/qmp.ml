@@ -57,6 +57,7 @@ let message_of_string x =
     [ ("execute", `String "stop") ] -> Command Stop
   | `Assoc [("timestamp", `Assoc [("seconds", `Int secs); ("microseconds", `Int usecs)]); ("event", `String event)] ->
     Event { secs; usecs; event }
+  | `Assoc [("return", `Assoc [])] -> Success ""
   | _ ->
     Error "unimplemented"
 
@@ -65,6 +66,7 @@ let string_of_message = function
   | Command Qmp_capabilities -> "Command Qmp_capabilities"
   | Command Stop -> "Command Stop"
   | Event e -> Printf.sprintf "Event { secs = %d; usecs = %d; event = %s }" e.secs e.usecs e.event
+  | Success s -> Printf.sprintf "Success %s" s
   | _ -> "unimplemented"
 
 
