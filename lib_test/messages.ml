@@ -46,6 +46,10 @@ let test_message_of_string (filename, expected) () =
   let actual = Qmp.message_of_string txt in
   assert_equal ~printer:Qmp.string_of_message expected actual
 
+let parse_print expected () =
+  let actual = Qmp.message_of_string (Qmp.string_of_message expected) in
+  assert_equal ~printer:Qmp.string_of_message expected actual
+
 let _ =
   let verbose = ref false in
   Arg.parse [
@@ -56,10 +60,14 @@ let _ =
   let message_of_string = "message_of_string" >::: (List.map (fun (filename, expected) ->
     filename >:: (test_message_of_string (filename, expected))
   ) files) in
+  let parse_print = "parse_print" >::: (List.map (fun (filename, expected) ->
+    filename >:: (parse_print expected)
+  ) files) in
 
   let suite = "qmp" >:::
     [
       message_of_string;
+      parse_print;
     ] in
   run_test_tt ~verbose:!verbose suite
 
