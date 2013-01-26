@@ -35,6 +35,7 @@ type command =
 
 type result =
   | Name_list of string list
+  | Status of string
   | Unit
 
 type message =
@@ -75,6 +76,7 @@ let message_of_string x =
   | `Assoc [("execute", `String "query-kvm"); ("id", `String "example")]
 *)
   | `Assoc [("execute", `String "eject"); ("arguments", `Assoc [("device", `String device)])] -> Command (Eject device)
+  | `Assoc [("return", `Assoc (("status", `String s) :: _))] -> Success (Status s)
   | _ ->
     Error "unimplemented"
 
@@ -87,6 +89,7 @@ let string_of_message = function
   | Command (Eject device) -> Printf.sprintf "Command Eject %s" device
   | Event e -> Printf.sprintf "Event { secs = %d; usecs = %d; event = %s }" e.secs e.usecs e.event
   | Success (Name_list xs) -> Printf.sprintf "Success [ %s ]" (String.concat ", " xs)
+  | Success (Status s) -> Printf.sprintf "Success Status %s" s
   | Success Unit -> "Success"
   | _ -> "unimplemented"
 

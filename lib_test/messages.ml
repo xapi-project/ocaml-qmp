@@ -30,6 +30,7 @@ let files = [
   "success.json",               Success Unit;
   "eject.json",                 Command (Eject "ide1-cd0");
   "query-status.json",          Command Query_status;
+  "query-status-result.json",   Success (Status "running");
 ]
 
 let string_of_file filename =
