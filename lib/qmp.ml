@@ -38,5 +38,7 @@ type message =
   | Success of string
   | Event of event
 
+let message_of_string _ = Error "unimplemented"
 
+let string_of_message _ = "unimplemented"
 
