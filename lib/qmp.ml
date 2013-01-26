@@ -29,7 +29,9 @@ type command =
   | Qmp_capabilities
   | Query_commands
   | Query_kvm
+  | Query_status
   | Stop
+  | Eject of string
 
 type result =
   | Name_list of string list
@@ -61,6 +63,7 @@ let message_of_string x =
   | `Assoc [ ("execute", `String "qmp_capabilities") ] -> Command Qmp_capabilities
   | `Assoc [ ("execute", `String "stop") ] -> Command Stop
   | `Assoc [ ("execute", `String "query-commands") ] -> Command Query_commands
+  | `Assoc [ ("execute", `String "query-status") ] -> Command Query_status
   | `Assoc [("timestamp", `Assoc [("seconds", `Int secs); ("microseconds", `Int usecs)]); ("event", `String event)] ->
     Event { secs; usecs; event }
   | `Assoc [("return", `Assoc [])] -> Success Unit
@@ -68,6 +71,10 @@ let message_of_string x =
     Success (Name_list (List.map (function
                                   | `Assoc [ "name", `String x ] -> x
                                   | _ -> failwith "assoc") list))
+(*
+  | `Assoc [("execute", `String "query-kvm"); ("id", `String "example")]
+*)
+  | `Assoc [("execute", `String "eject"); ("arguments", `Assoc [("device", `String device)])] -> Command (Eject device)
   | _ ->
     Error "unimplemented"
 
@@ -76,6 +83,8 @@ let string_of_message = function
   | Command Qmp_capabilities -> "Command Qmp_capabilities"
   | Command Stop -> "Command Stop"
   | Command Query_commands -> "Command Query_commands"
+  | Command Query_status -> "Command Query_status"
+  | Command (Eject device) -> Printf.sprintf "Command Eject %s" device
   | Event e -> Printf.sprintf "Event { secs = %d; usecs = %d; event = %s }" e.secs e.usecs e.event
   | Success (Name_list xs) -> Printf.sprintf "Success [ %s ]" (String.concat ", " xs)
   | Success Unit -> "Success"

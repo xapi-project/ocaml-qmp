@@ -28,6 +28,8 @@ let files = [
   "query_jvm-return.json",      Success Unit;
   "stop.json",                  Command Stop;
   "success.json",               Success Unit;
+  "eject.json",                 Command (Eject "ide1-cd0");
+  "query-status.json",          Command Query_status;
 ]
 
 let string_of_file filename =
