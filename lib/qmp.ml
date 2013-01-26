@@ -1,5 +1,5 @@
 (*
- * Copyright (C) 2012 Citrix Systems Inc.
+ * Copyright (C) 2013 Citrix Systems Inc.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published
@@ -19,24 +19,24 @@ type greeting = {
   package: string;
 }
 
-type 'a result =
-  | Success of 'a
-  | Error of string
-
-module Request = struct
-  type t =
-    | Qmp_capabilities
-    | Query_commands
-end
-
-module Response = struct
-  type t =
-    | Qmp_capabilities
-    | Query_commands of string list
-end
-
 type event = {
   secs: int;
   usecs: int;
   event: string;
 }
+
+type command =
+  | Qmp_capabilities
+  | Query_commands
+  | Query_kvm
+  | Stop
+
+type message =
+  | Greeting of greeting
+  | Command of command
+  | Error of string
+  | Success of string
+  | Event of event
+
+
+

@@ -7,3 +7,8 @@ library qmp
   modules: Qmp
   src-dir: lib
   c-dir: ./
+
+executable messages
+  main-is: messages.ml
+  src-dir: lib_test
+  build-deps: oUnit, qmp
