@@ -4,7 +4,7 @@ synopsis: my new project
 obuild-ver: 1
 
 library qmp
-  modules: Qmp
+  modules: Qmp, Qmp_protocol
   src-dir: lib
   c-dir: ./
   build-deps: yojson

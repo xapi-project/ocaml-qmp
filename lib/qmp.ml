@@ -154,5 +154,3 @@ let json_of_message = function
 
 let string_of_message m = Yojson.Safe.to_string (json_of_message m)
 
-
-
