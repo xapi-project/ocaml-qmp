@@ -13,3 +13,8 @@ executable messages
   main-is: messages.ml
   src-dir: lib_test
   build-deps: oUnit, qmp
+
+executable cli
+  main-is: cli.ml
+  src-dir: cli
+  build-deps: qmp, unix, cmdliner
