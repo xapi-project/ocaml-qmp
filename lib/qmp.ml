@@ -52,6 +52,9 @@ let message_of_string x =
   let string = function
   | `String x -> x
   | _ -> failwith "string" in
+  let assoc = function
+  | `Assoc x -> x
+  | _ -> failwith "assoc" in
   match Yojson.Safe.from_string x with
   | `Assoc 
      [ ("QMP", `Assoc [ ("version", `Assoc [ "qemu", `Assoc version; "package", `String package ]); ("capabilities", _)] )] ->
@@ -65,7 +68,11 @@ let message_of_string x =
   | `Assoc [ ("execute", `String "stop") ] -> Command Stop
   | `Assoc [ ("execute", `String "query-commands") ] -> Command Query_commands
   | `Assoc [ ("execute", `String "query-status") ] -> Command Query_status
-  | `Assoc [("timestamp", `Assoc [("seconds", `Int secs); ("microseconds", `Int usecs)]); ("event", `String event)] ->
+  | `Assoc list when List.mem_assoc "event" list ->
+    let event = string (List.assoc "event" list) in
+    let timestamp = assoc (List.assoc "timestamp" list) in
+    let secs = int (List.assoc "seconds" timestamp) in
+    let usecs = int (List.assoc "microseconds" timestamp) in
     Event { secs; usecs; event }
   | `Assoc [("return", `Assoc [])] -> Success Unit
   | `Assoc [("return", `List ((`Assoc [ "name", `String _ ] :: _) as list) )] ->

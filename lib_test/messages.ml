@@ -31,6 +31,7 @@ let files = [
   "eject.json",                 Command (Eject "ide1-cd0");
   "query-status.json",          Command Query_status;
   "query-status-result.json",   Success (Status "running");
+  "block-io-error.json",        Event { secs = 1265044230; usecs = 450486; event = "BLOCK_IO_ERROR" };
 ]
 
 let string_of_file filename =
