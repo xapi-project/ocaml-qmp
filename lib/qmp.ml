@@ -25,6 +25,11 @@ type event = {
   event: string;
 }
 
+type enabled = {
+  enabled: bool;
+  present: bool;
+}
+
 type command =
   | Qmp_capabilities
   | Query_commands
@@ -35,6 +40,7 @@ type command =
 
 type result =
   | Name_list of string list
+  | Enabled of enabled
   | Status of string
   | Unit
 
@@ -57,6 +63,9 @@ let message_of_string x =
   let assoc = function
   | `Assoc x -> x
   | _ -> failwith "assoc" in
+  let bool = function
+  | `Bool x -> x
+  | _ -> failwith "bool" in
   match Yojson.Safe.from_string x with
   | `Assoc 
      [ ("QMP", `Assoc [ ("version", `Assoc [ "qemu", `Assoc version; "package", `String package ]); ("capabilities", _)] )] ->
@@ -89,6 +98,10 @@ let message_of_string x =
       | `Assoc [] -> Unit
       | `Assoc list when List.mem_assoc "status" list ->
         Status (string (List.assoc "status" list))
+      | `Assoc list when List.mem_assoc "enabled" list ->
+        let enabled = bool (List.assoc "enabled" list) in
+        let present = bool (List.assoc "present" list) in
+        Enabled {enabled; present}
       | `List ((`Assoc pair :: _) as list) when List.mem_assoc "name" pair ->
         Name_list (List.map (function
                              | `Assoc [ "name", `String x ] -> x
@@ -120,6 +133,7 @@ let json_of_message = function
     let result = match result with
       | Unit -> `Assoc []
       | Status s -> `Assoc [ "status", `String s ]
+      | Enabled {enabled; present} -> `Assoc [ "enabled", `Bool enabled; "present", `Bool present ]
       | Name_list xs -> `List (List.map (fun x -> `Assoc [ "name", `String x ]) xs) in
     `Assoc (("return", result) :: id)
   | Error(id, e) ->

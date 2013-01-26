@@ -25,7 +25,7 @@ let files = [
   "query-commands.json",        Command (None, Query_commands);
   "query-commands-return.json", Success (None, Name_list [ "qom-list-types"; "change-vnc-password" ]);
   "query_kvm.json",             Command (Some "example", Query_kvm);
-  "query_jvm-return.json",      Success (None, Unit);
+  "query_kvm-return.json",      Success (Some "example", Enabled { enabled=true; present = true });
   "stop.json",                  Command (None, Stop);
   "success.json",               Success (None, Unit);
   "eject.json",                 Command (None, Eject "ide1-cd0");
