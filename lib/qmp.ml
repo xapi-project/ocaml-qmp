@@ -51,10 +51,9 @@ let message_of_string x =
       micro = int (List.assoc "micro" version);
       package = package;  
     }
-  | `Assoc
-    [ ("execute", `String "qmp_capabilities") ] -> Command Qmp_capabilities
-  | `Assoc
-    [ ("execute", `String "stop") ] -> Command Stop
+  | `Assoc [ ("execute", `String "qmp_capabilities") ] -> Command Qmp_capabilities
+  | `Assoc [ ("execute", `String "stop") ] -> Command Stop
+  | `Assoc [ ("execute", `String "query-commands") ] -> Command Query_commands
   | `Assoc [("timestamp", `Assoc [("seconds", `Int secs); ("microseconds", `Int usecs)]); ("event", `String event)] ->
     Event { secs; usecs; event }
   | `Assoc [("return", `Assoc [])] -> Success ""
@@ -65,6 +64,7 @@ let string_of_message = function
   | Greeting g -> Printf.sprintf "Greeting { major = %d; minor = %d; micro = %d; package = %s }" g.major g.minor g.micro g.package
   | Command Qmp_capabilities -> "Command Qmp_capabilities"
   | Command Stop -> "Command Stop"
+  | Command Query_commands -> "Command Query_commands"
   | Event e -> Printf.sprintf "Event { secs = %d; usecs = %d; event = %s }" e.secs e.usecs e.event
   | Success s -> Printf.sprintf "Success %s" s
   | _ -> "unimplemented"
