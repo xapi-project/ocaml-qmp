@@ -31,17 +31,24 @@ type command =
   | Query_kvm
   | Stop
 
+type result =
+  | Name_list of string list
+  | Unit
+
 type message =
   | Greeting of greeting
   | Command of command
   | Error of string
-  | Success of string
+  | Success of result
   | Event of event
 
 let message_of_string x =
   let int = function
   | `Int x -> x
   | _ -> failwith "int" in
+  let string = function
+  | `String x -> x
+  | _ -> failwith "string" in
   match Yojson.Safe.from_string x with
   | `Assoc 
      [ ("QMP", `Assoc [ ("version", `Assoc [ "qemu", `Assoc version; "package", `String package ]); ("capabilities", _)] )] ->
@@ -56,7 +63,11 @@ let message_of_string x =
   | `Assoc [ ("execute", `String "query-commands") ] -> Command Query_commands
   | `Assoc [("timestamp", `Assoc [("seconds", `Int secs); ("microseconds", `Int usecs)]); ("event", `String event)] ->
     Event { secs; usecs; event }
-  | `Assoc [("return", `Assoc [])] -> Success ""
+  | `Assoc [("return", `Assoc [])] -> Success Unit
+  | `Assoc [("return", `List ((`Assoc [ "name", `String _ ] :: _) as list) )] ->
+    Success (Name_list (List.map (function
+                                  | `Assoc [ "name", `String x ] -> x
+                                  | _ -> failwith "assoc") list))
   | _ ->
     Error "unimplemented"
 
@@ -66,7 +77,8 @@ let string_of_message = function
   | Command Stop -> "Command Stop"
   | Command Query_commands -> "Command Query_commands"
   | Event e -> Printf.sprintf "Event { secs = %d; usecs = %d; event = %s }" e.secs e.usecs e.event
-  | Success s -> Printf.sprintf "Success %s" s
+  | Success (Name_list xs) -> Printf.sprintf "Success [ %s ]" (String.concat ", " xs)
+  | Success Unit -> "Success"
   | _ -> "unimplemented"
 
 

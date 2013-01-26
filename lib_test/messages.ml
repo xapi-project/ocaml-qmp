@@ -23,11 +23,11 @@ let files = [
   "greeting.json",              Greeting { major = 1; minor = 1; micro = 0; package = " (Debian 1.1.0+dfsg-1)" };
   "powerdown.json",             Event { secs = 1258551470; usecs = 802384; event = "POWERDOWN" };
   "query-commands.json",        Command Query_commands;
-  "query-commands-return.json", Success "";
+  "query-commands-return.json", Success (Name_list [ "qom-list-types"; "change-vnc-password" ]);
   "query_kvm.json",             Command Query_kvm;
-  "query_jvm-return.json",      Success "";
+  "query_jvm-return.json",      Success Unit;
   "stop.json",                  Command Stop;
-  "success.json",               Success "";
+  "success.json",               Success Unit;
 ]
 
 let string_of_file filename =
