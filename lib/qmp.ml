@@ -53,12 +53,15 @@ let message_of_string x =
     }
   | `Assoc
     [ ("execute", `String "qmp_capabilities") ] -> Command Qmp_capabilities
+  | `Assoc
+    [ ("execute", `String "stop") ] -> Command Stop
   | _ ->
     Error "unimplemented"
 
 let string_of_message = function
   | Greeting g -> Printf.sprintf "Greeting { major = %d; minor = %d; micro = %d; package = %s }" g.major g.minor g.micro g.package
   | Command Qmp_capabilities -> "Command Qmp_capabilities"
+  | Command Stop -> "Command Stop"
   | _ -> "unimplemented"
 
 
