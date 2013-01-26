@@ -19,7 +19,7 @@ let my_dir = "lib_test"
 
 let files = [
   "capabilities.json",          Command (None, Qmp_capabilities);
-  "error.json",                 Error (None, "{\"class\": \"JSONParsing\", \"desc\": \"Invalid JSON syntax\", \"data\": {}}");
+  "error.json",                 Error (None, { cls="JSONParsing"; descr="Invalid JSON syntax" });
   "greeting.json",              Greeting { major = 1; minor = 1; micro = 0; package = " (Debian 1.1.0+dfsg-1)" };
   "powerdown.json",             Event { secs = 1258551470; usecs = 802384; event = "POWERDOWN" };
   "query-commands.json",        Command (None, Query_commands);

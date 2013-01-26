@@ -44,12 +44,17 @@ type result =
   | Status of string
   | Unit
 
+type error = {
+  cls: string;
+  descr: string;
+}
+
 type id = string
 
 type message =
   | Greeting of greeting
   | Command of (id option * command)
-  | Error of (id option * string)
+  | Error of (id option * error)
   | Success of (id option * result)
   | Event of event
 
@@ -108,6 +113,12 @@ let message_of_string x =
                              | _ -> failwith "assoc") list)
       | x -> failwith (Printf.sprintf "unknown result %s" (Yojson.Safe.to_string x))
     ))
+  | `Assoc list when List.mem_assoc "error" list ->
+    let id = if List.mem_assoc "id" list then Some (string (List.assoc "id" list)) else None in
+    let error = assoc (List.assoc "error" list) in
+    let cls = string (List.assoc "class" error) in
+    let descr = string (List.assoc "desc" error) in
+    Error (id, {cls; descr})
   | x ->
     failwith (Printf.sprintf "message_of_string %s" (Yojson.Safe.to_string x))
 
@@ -137,7 +148,9 @@ let json_of_message = function
       | Name_list xs -> `List (List.map (fun x -> `Assoc [ "name", `String x ]) xs) in
     `Assoc (("return", result) :: id)
   | Error(id, e) ->
-    failwith "json_of_message Error"
+    let id = match id with None -> [] | Some x -> [ "id", `String x ] in
+    let e = `Assoc [ "class", `String e.cls; "desc", `String e.descr; "data", `Assoc [] ] in
+    `Assoc (("error", e) :: id)
 
 let string_of_message m = Yojson.Safe.to_string (json_of_message m)
 
