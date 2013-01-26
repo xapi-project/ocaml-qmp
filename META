@@ -1,0 +1,9 @@
+version = "0.0.0"
+description = "QMP protocol client"
+requires = "unix yojson"
+archive(byte) = "qmp.cma"
+archive(byte, plugin) = "qmp.cma"
+archive(native) = "qmp.cmxa"
+archive(native, plugin) = "qmp.cmxs"
+exists_if = "qmp.cma"
+
