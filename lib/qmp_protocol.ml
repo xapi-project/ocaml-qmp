@@ -19,18 +19,20 @@ let connect path =
   let sockaddr = Unix.ADDR_UNIX path in
   let s = Unix.socket Unix.PF_UNIX Unix.SOCK_STREAM 0 in
   Unix.connect s sockaddr;
-  Unix.in_channel_of_descr s, Unix.out_channel_of_descr s
+  s, Unix.in_channel_of_descr s, Unix.out_channel_of_descr s
 
-let read (ic, _) =
+let read (_, ic, _) =
   let line = input_line ic in
   Printf.fprintf stderr "READ [%s]\n%!" line;
   message_of_string line
 
-let write (_, oc) m =
+let write (_, _, oc) m =
   let msg = string_of_message m in
   output_string oc msg;
   output_string oc "\r\n";
   flush oc
+
+let close (s, _, _) = Unix.close s
 
 let negotiate c =
   match read c with
