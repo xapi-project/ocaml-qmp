@@ -21,6 +21,8 @@ let connect path =
   Unix.connect s sockaddr;
   s, Unix.in_channel_of_descr s, Unix.out_channel_of_descr s
 
+let to_fd (fd, _, _) = fd
+
 let read (_, ic, _) =
   let line = input_line ic in
   Printf.fprintf stderr "READ [%s]\n%!" line;
