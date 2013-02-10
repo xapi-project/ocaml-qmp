@@ -59,7 +59,34 @@ let watch_cmd =
   Term.(pure Client.watch $ common_options_t),
   Term.info "watch" ~sdocs:_common_options ~doc ~man
 
-let cmds = [ watch_cmd ]
+let stop_cmd =
+  let doc = "Immediately freeze execution" in
+  let man = [
+    `S "DESCRIPTION";
+    `P "Stop the VM running but leave the state intact. Use 'cont' to start the VM executing again.";
+  ] @ help in
+  Term.(pure Client.stop $ common_options_t),
+  Term.info "stop" ~sdocs:_common_options ~doc ~man
+
+let cont_cmd =
+  let doc = "Continue a frozen VM" in
+  let man = [
+    `S "DESCRIPTION";
+    `P "If a VM has been frozen with 'stop', then 'cont' will cause it to start executing again.";
+  ] @ help in
+  Term.(pure Client.cont $ common_options_t),
+  Term.info "cont" ~sdocs:_common_options ~doc ~man
+
+let powerdown_cmd =
+  let doc = "Press the system powerdown button" in
+  let man = [
+    `S "DESCRIPTION";
+    `P "Press the system powerdown button which requests that the OS shuts itself down cleanly.";
+  ] @ help in
+  Term.(pure Client.system_powerdown $ common_options_t),
+  Term.info "powerdown" ~sdocs:_common_options ~doc ~man
+
+let cmds = [ watch_cmd; stop_cmd; cont_cmd; powerdown_cmd ]
 
 let _ =
   match Term.eval_choice default_cmd cmds with

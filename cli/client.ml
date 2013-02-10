@@ -15,13 +15,31 @@
 open Qmp
 open Qmp_protocol
 
-let watch copts =
-  let c = connect copts.Common.socket in
-  negotiate c;
-
+let monitor_events c =
   while true do
     let m = read c in
     Printf.fprintf stderr "%s\n%!" (string_of_message m);
-  done;
-  ()
+  done
 
+let watch copts =
+  let c = connect copts.Common.socket in
+  negotiate c;
+  monitor_events c
+
+let system_powerdown copts =
+  let c = connect copts.Common.socket in
+  negotiate c;
+  write c (Command(None, System_powerdown));
+  monitor_events c
+
+let stop copts =
+  let c = connect copts.Common.socket in
+  negotiate c;
+  write c (Command(None, Stop));
+  monitor_events c
+
+let cont copts =
+  let c = connect copts.Common.socket in
+  negotiate c;
+  write c (Command(None, Cont));
+  monitor_events c

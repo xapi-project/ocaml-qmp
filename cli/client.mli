@@ -13,3 +13,9 @@
  *)
 
 val watch: Common.t -> unit
+
+val stop: Common.t -> unit
+
+val cont: Common.t -> unit
+
+val system_powerdown: Common.t -> unit

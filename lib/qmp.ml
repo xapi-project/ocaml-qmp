@@ -36,7 +36,9 @@ type command =
   | Query_kvm
   | Query_status
   | Stop
+  | Cont
   | Eject of string
+  | System_powerdown
 
 type result =
   | Name_list of string list
@@ -91,6 +93,8 @@ let message_of_string x =
     Command (id, (match string (List.assoc "execute" list) with
       | "qmp_capabilities" -> Qmp_capabilities
       | "stop" -> Stop
+      | "cont" -> Cont
+      | "system_powerdown" -> System_powerdown
       | "query-commands" -> Query_commands
       | "query-status" -> Query_status
       | "query-kvm" -> Query_kvm
@@ -131,6 +135,8 @@ let json_of_message = function
     let cmd, args = match cmd with
       | Qmp_capabilities -> "qmp_capabilities", []
       | Stop -> "stop", []
+      | Cont -> "cont", []
+      | System_powerdown -> "system_powerdown", []
       | Query_commands -> "query-commands", []
       | Query_status -> "query-status", []
       | Query_kvm -> "query-kvm", []
