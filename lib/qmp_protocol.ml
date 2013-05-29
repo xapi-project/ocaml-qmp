@@ -14,6 +14,8 @@
 
 open Qmp
 
+type t = Unix.file_descr * in_channel * out_channel
+
 let connect path =
   Printf.fprintf stderr "Connecting to %s\n%!" path;
   let sockaddr = Unix.ADDR_UNIX path in
