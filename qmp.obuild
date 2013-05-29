@@ -1,6 +1,6 @@
 name: qmp
-version: 0.0.0
-synopsis: my new project
+version: 0.9.0
+synopsis: Qemu Message Protocol (QMP) client for OCaml
 obuild-ver: 1
 
 library qmp

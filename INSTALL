@@ -1,0 +1,16 @@
+The following dependencies are needed:
+
+* OCaml (obviously)
+* ocamlfind
+* cmdliner
+* yojson
+* oUnit
+
+To build:
+
+     make
+
+To install:
+
+     make install [DESTDIR=]
+
