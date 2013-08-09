@@ -1,4 +1,4 @@
-0.9.1 (29-May-2013):
+0.9.1 (09-Aug-2013):
 * Change representation of message timestamps from a tuple of ints to
   a float.  This avoids problems on 32-bit architectures and  follows 
   the example of the OCaml standard library.
