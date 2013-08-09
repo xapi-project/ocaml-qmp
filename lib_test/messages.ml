@@ -21,7 +21,7 @@ let files = [
   "capabilities.json",          Command (None, Qmp_capabilities);
   "error.json",                 Error (None, { cls="JSONParsing"; descr="Invalid JSON syntax" });
   "greeting.json",              Greeting { major = 1; minor = 1; micro = 0; package = " (Debian 1.1.0+dfsg-1)" };
-  "powerdown.json",             Event { secs = 1258551470; usecs = 802384; event = "POWERDOWN" };
+  "powerdown.json",             Event { timestamp = 1258551470.802384; event = "POWERDOWN" };
   "query-commands.json",        Command (None, Query_commands);
   "query-commands-return.json", Success (None, Name_list [ "qom-list-types"; "change-vnc-password" ]);
   "query_kvm.json",             Command (Some "example", Query_kvm);
@@ -31,7 +31,7 @@ let files = [
   "eject.json",                 Command (None, Eject "ide1-cd0");
   "query-status.json",          Command (None, Query_status);
   "query-status-result.json",   Success (None, Status "running");
-  "block-io-error.json",        Event { secs = 1265044230; usecs = 450486; event = "BLOCK_IO_ERROR" };
+  "block-io-error.json",        Event { timestamp = 1265044230.450486; event = "BLOCK_IO_ERROR" };
 ]
 
 let string_of_file filename =
