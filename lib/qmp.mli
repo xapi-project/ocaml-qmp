@@ -32,9 +32,8 @@ type greeting = {
 }
 
 type event = {
-  secs : int;       (** time the event occurred in secs ... *)
-  usecs : int;      (** ... and usecs *)
-  event : string;   (** type of event *)
+  timestamp : float; (** time the event occurred in seconds *)
+  event : string;    (** type of event *)
 }
 
 type error = { cls : string; descr : string; }
