@@ -29,6 +29,8 @@ let files = [
   "stop.json",                  Command (None, Stop);
   "success.json",               Success (None, Unit);
   "eject.json",                 Command (None, Eject "ide1-cd0");
+  "change-cd.json",             Command (None, Change ("ide1-cd0", "/tmp/cdrom.iso", None));
+  "change-vnc.json",            Command (None, Change ("vnc", "password", Some "foobar1"));
   "query-status.json",          Command (None, Query_status);
   "query-status-result.json",   Success (None, Status "running");
   "block-io-error.json",        Event { timestamp = 1265044230.450486; event = "BLOCK_IO_ERROR" };

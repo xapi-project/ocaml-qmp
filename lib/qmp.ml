@@ -37,6 +37,7 @@ type command =
   | Stop
   | Cont
   | Eject of string
+  | Change of string * string * string option
   | System_powerdown
 
 type result =
@@ -102,6 +103,13 @@ let message_of_string x =
       | "query-status" -> Query_status
       | "query-kvm" -> Query_kvm
       | "eject" -> Eject (string (List.assoc "device" (assoc (List.assoc "arguments" list))))
+      | "change" -> 
+          let arguments = assoc (List.assoc "arguments" list) in
+            Change (string (List.assoc "device" arguments),
+                    string (List.assoc "target" arguments),
+                    if List.mem_assoc "arg" arguments then 
+                      Some (string (List.assoc "arg" arguments)) 
+                    else None)
       | x -> failwith (Printf.sprintf "unknown command %s" x)
     ))
   | `Assoc list when List.mem_assoc "return" list ->
@@ -143,7 +151,9 @@ let json_of_message = function
       | Query_commands -> "query-commands", []
       | Query_status -> "query-status", []
       | Query_kvm -> "query-kvm", []
-      | Eject device -> "eject", [ "device", `String device ] in
+      | Eject device -> "eject", [ "device", `String device ]
+      | Change (device, target, None) -> "change", [ "device", `String device; "target", `String target ]
+      | Change (device, target, Some arg) -> "change", [ "device", `String device; "target", `String target; "arg", `String arg ] in
     let args = match args with [] -> [] | args -> [ "arguments", `Assoc args ] in
     `Assoc (("execute", `String cmd) :: id @ args)
   | Event {timestamp; event} ->
