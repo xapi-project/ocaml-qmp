@@ -49,6 +49,7 @@ type command =
   | Stop
   | Cont
   | Eject of string
+  | Change of string * string * string option
   | System_powerdown
 (** commands that may be sent to qemu *)
 

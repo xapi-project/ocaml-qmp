@@ -12,7 +12,7 @@ library qmp
 executable messages
   main-is: messages.ml
   src-dir: lib_test
-  build-deps: oUnit, qmp
+  build-deps: oUnit, qmp, unix
 
 executable cli
   main-is: cli.ml
