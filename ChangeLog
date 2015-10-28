@@ -1,3 +1,6 @@
+0.9.3 (28-Oct-2015):
+* Package is now built using Oasis
+
 0.9.1 (09-Aug-2013):
 * Change representation of message timestamps from a tuple of ints to
   a float.  This avoids problems on 32-bit architectures and  follows 
