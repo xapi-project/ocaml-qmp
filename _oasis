@@ -1,6 +1,6 @@
 OASISFormat:    0.4
 Name:           qmp
-Version:        0.9.2
+Version:        0.9.3
 Synopsis:       Qemu Message Protocol (QMP) client for OCaml
 Authors:        David Scott
 License:        LGPL-2.1 with OCaml linking exception
