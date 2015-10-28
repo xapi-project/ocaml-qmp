@@ -1,27 +1,37 @@
-OBUILDOPTS=--debug+
-#CONFOPTS=--enable-library-bytecode --enable-executable-bytecode
-PKGNAME=qmp
+build: setup.data
+	ocaml setup.ml -build $(BUILDFLAGS)
 
-ifneq "$(DESTDIR)" ""
-INSTALL_ARGS := -destdir $(DESTDIR)
-endif
+doc: setup.data build
+	ocaml setup.ml -doc $(DOCFLAGS)
 
-.PHONY: configure build install clean uninstall
+test: setup.data build
+	ocaml setup.ml -test $(TESTFLAGS)
 
-all: build
+all: setup.ml
+	ocaml setup.ml -all $(ALLFLAGS)
 
-configure:
-	obuild $(OBUILDOPTS) configure $(CONFOPTS)
+install: setup.data
+	ocaml setup.ml -install $(INSTALLFLAGS)
 
-build: configure
-	obuild $(OBUILDOPTS) build
+uninstall: setup.data
+	ocaml setup.ml -uninstall $(UNINSTALLFLAGS)
 
-install: build
-	ocamlfind remove $(PKGNAME)
-	ocamlfind install $(PKGNAME) $(shell find dist/build/lib-qmp -type f) lib/META $(INSTALL_ARGS)
+reinstall: setup.data
+	ocaml setup.ml -reinstall $(REINSTALLFLAGS)
 
-clean:
-	obuild clean
+clean: setup.ml
+	ocaml setup.ml -clean $(CLEANFLAGS)
 
-uninstall:
-	ocamlfind remove $(PKGNAME)
+distclean: setup.ml
+	ocaml setup.ml -distclean $(DISTCLEANFLAGS)
+
+setup.data: setup.ml
+	ocaml setup.ml -configure $(CONFIGUREFLAGS)
+
+configure: setup.ml
+	ocaml setup.ml -configure $(CONFIGUREFLAGS)
+
+setup.ml: _oasis
+	oasis setup
+
+.PHONY: build doc test all install uninstall reinstall clean distclean configure
