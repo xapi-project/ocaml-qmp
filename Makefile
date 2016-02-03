@@ -1,37 +1,41 @@
+# OASIS_START
+# DO NOT EDIT (digest: a3c674b4239234cbbe53afe090018954)
+
+SETUP = ocaml setup.ml
+
 build: setup.data
-	ocaml setup.ml -build $(BUILDFLAGS)
+	$(SETUP) -build $(BUILDFLAGS)
 
 doc: setup.data build
-	ocaml setup.ml -doc $(DOCFLAGS)
+	$(SETUP) -doc $(DOCFLAGS)
 
 test: setup.data build
-	ocaml setup.ml -test $(TESTFLAGS)
+	$(SETUP) -test $(TESTFLAGS)
 
-all: setup.ml
-	ocaml setup.ml -all $(ALLFLAGS)
+all:
+	$(SETUP) -all $(ALLFLAGS)
 
 install: setup.data
-	ocaml setup.ml -install $(INSTALLFLAGS)
+	$(SETUP) -install $(INSTALLFLAGS)
 
 uninstall: setup.data
-	ocaml setup.ml -uninstall $(UNINSTALLFLAGS)
+	$(SETUP) -uninstall $(UNINSTALLFLAGS)
 
 reinstall: setup.data
-	ocaml setup.ml -reinstall $(REINSTALLFLAGS)
+	$(SETUP) -reinstall $(REINSTALLFLAGS)
 
-clean: setup.ml
-	ocaml setup.ml -clean $(CLEANFLAGS)
+clean:
+	$(SETUP) -clean $(CLEANFLAGS)
 
-distclean: setup.ml
-	ocaml setup.ml -distclean $(DISTCLEANFLAGS)
+distclean:
+	$(SETUP) -distclean $(DISTCLEANFLAGS)
 
-setup.data: setup.ml
-	ocaml setup.ml -configure $(CONFIGUREFLAGS)
+setup.data:
+	$(SETUP) -configure $(CONFIGUREFLAGS)
 
-configure: setup.ml
-	ocaml setup.ml -configure $(CONFIGUREFLAGS)
-
-setup.ml: _oasis
-	oasis setup
+configure:
+	$(SETUP) -configure $(CONFIGUREFLAGS)
 
 .PHONY: build doc test all install uninstall reinstall clean distclean configure
+
+# OASIS_STOP

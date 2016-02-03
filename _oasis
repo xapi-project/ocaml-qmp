@@ -4,7 +4,7 @@ Version:        0.9.3
 Synopsis:       Qemu Message Protocol (QMP) client for OCaml
 Authors:        David Scott
 License:        LGPL-2.1 with OCaml linking exception
-Plugins:        META (0.4)
+Plugins:        META (0.4), Devfiles (0.4)
 BuildTools:     ocamlbuild
 
 Library qmp
