@@ -8,7 +8,6 @@ _tags
 *.mldylib
 *.mllib
 myocamlbuild.ml
-setup.ml
 setup.data
 setup.log
 
