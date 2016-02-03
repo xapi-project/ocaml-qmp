@@ -15,7 +15,7 @@ Library qmp
   NativeOpt:        -warn-error +1..45
   BuildDepends:     yojson, unix
 
-Executable cli
+Executable "qmp-cli"
   Path:           cli
   MainIs:         cli.ml
   CompiledObject: best
