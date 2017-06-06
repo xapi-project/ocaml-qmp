@@ -36,7 +36,7 @@ type command =
   | Query_status
   | Stop
   | Cont
-  | Eject of string
+  | Eject of string * bool option
   | Change of string * string * string option
   | System_powerdown
 
@@ -77,13 +77,13 @@ let message_of_string x =
   | `Bool x -> x
   | _ -> failwith "bool" in
   match Yojson.Safe.from_string x with
-  | `Assoc 
+  | `Assoc
      [ ("QMP", `Assoc [ ("version", `Assoc [ "qemu", `Assoc version; "package", `String package ]); ("capabilities", _)] )] ->
     Greeting {
       minor = int (List.assoc "minor" version);
       major = int (List.assoc "major" version);
       micro = int (List.assoc "micro" version);
-      package = package;  
+      package = package;
     }
   | `Assoc list when List.mem_assoc "event" list ->
     let event = string (List.assoc "event" list) in
@@ -102,13 +102,19 @@ let message_of_string x =
       | "query-commands" -> Query_commands
       | "query-status" -> Query_status
       | "query-kvm" -> Query_kvm
-      | "eject" -> Eject (string (List.assoc "device" (assoc (List.assoc "arguments" list))))
-      | "change" -> 
+      | "eject" ->
+            let arguments = assoc (List.assoc "arguments" list) in
+            Eject (string (List.assoc "device" arguments),
+                   if List.mem_assoc "force" arguments then
+                     Some (bool (List.assoc "force" arguments))
+                   else
+                     None)
+      | "change" ->
           let arguments = assoc (List.assoc "arguments" list) in
             Change (string (List.assoc "device" arguments),
                     string (List.assoc "target" arguments),
-                    if List.mem_assoc "arg" arguments then 
-                      Some (string (List.assoc "arg" arguments)) 
+                    if List.mem_assoc "arg" arguments then
+                      Some (string (List.assoc "arg" arguments))
                     else None)
       | x -> failwith (Printf.sprintf "unknown command %s" x)
     ))
@@ -151,7 +157,8 @@ let json_of_message = function
       | Query_commands -> "query-commands", []
       | Query_status -> "query-status", []
       | Query_kvm -> "query-kvm", []
-      | Eject device -> "eject", [ "device", `String device ]
+      | Eject (device, None) -> "eject", [ "device", `String device ]
+      | Eject (device, Some force) -> "eject", [ "device", `String device; "force", `Bool force ]
       | Change (device, target, None) -> "change", [ "device", `String device; "target", `String target ]
       | Change (device, target, Some arg) -> "change", [ "device", `String device; "target", `String target; "arg", `String arg ] in
     let args = match args with [] -> [] | args -> [ "arguments", `Assoc args ] in

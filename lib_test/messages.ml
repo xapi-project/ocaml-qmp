@@ -28,7 +28,8 @@ let files = [
   "query_kvm-return.json",      Success (Some "example", Enabled { enabled=true; present = true });
   "stop.json",                  Command (None, Stop);
   "success.json",               Success (None, Unit);
-  "eject.json",                 Command (None, Eject "ide1-cd0");
+  "eject.json",                 Command (None, Eject  ("ide1-cd0", None));
+  "eject_force.json",           Command (None, Eject  ("ide1-cd0", Some true));
   "change-cd.json",             Command (None, Change ("ide1-cd0", "/tmp/cdrom.iso", None));
   "change-vnc.json",            Command (None, Change ("vnc", "password", Some "foobar1"));
   "query-status.json",          Command (None, Query_status);

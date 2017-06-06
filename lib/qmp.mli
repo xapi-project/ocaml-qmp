@@ -48,7 +48,7 @@ type command =
   | Query_status
   | Stop
   | Cont
-  | Eject of string
+  | Eject of string * bool option
   | Change of string * string * string option
   | System_powerdown
 (** commands that may be sent to qemu *)
