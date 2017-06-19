@@ -51,6 +51,8 @@ type command =
   | Eject of string * bool option
   | Change of string * string * string option
   | System_powerdown
+  | Xen_save_devices_state of string
+  | Xen_load_devices_state of string
 (** commands that may be sent to qemu *)
 
 type message =

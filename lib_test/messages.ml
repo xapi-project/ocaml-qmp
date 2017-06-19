@@ -18,23 +18,25 @@ open Qmp
 let my_dir = "lib_test"
 
 let files = [
-  "capabilities.json",          Command (None, Qmp_capabilities);
-  "error.json",                 Error (None, { cls="JSONParsing"; descr="Invalid JSON syntax" });
-  "greeting.json",              Greeting { major = 1; minor = 1; micro = 0; package = " (Debian 1.1.0+dfsg-1)" };
-  "powerdown.json",             Event { timestamp = 1258551470.802384; event = "POWERDOWN" };
-  "query-commands.json",        Command (None, Query_commands);
-  "query-commands-return.json", Success (None, Name_list [ "qom-list-types"; "change-vnc-password" ]);
-  "query_kvm.json",             Command (Some "example", Query_kvm);
-  "query_kvm-return.json",      Success (Some "example", Enabled { enabled=true; present = true });
-  "stop.json",                  Command (None, Stop);
-  "success.json",               Success (None, Unit);
-  "eject.json",                 Command (None, Eject  ("ide1-cd0", None));
-  "eject_force.json",           Command (None, Eject  ("ide1-cd0", Some true));
-  "change-cd.json",             Command (None, Change ("ide1-cd0", "/tmp/cdrom.iso", None));
-  "change-vnc.json",            Command (None, Change ("vnc", "password", Some "foobar1"));
-  "query-status.json",          Command (None, Query_status);
-  "query-status-result.json",   Success (None, Status "running");
-  "block-io-error.json",        Event { timestamp = 1265044230.450486; event = "BLOCK_IO_ERROR" };
+  "capabilities.json",           Command (None, Qmp_capabilities);
+  "error.json",                  Error (None, { cls="JSONParsing"; descr="Invalid JSON syntax" });
+  "greeting.json",               Greeting { major = 1; minor = 1; micro = 0; package = " (Debian 1.1.0+dfsg-1)" };
+  "powerdown.json",              Event { timestamp = 1258551470.802384; event = "POWERDOWN" };
+  "query-commands.json",         Command (None, Query_commands);
+  "query-commands-return.json",  Success (None, Name_list [ "qom-list-types"; "change-vnc-password" ]);
+  "query_kvm.json",              Command (Some "example", Query_kvm);
+  "query_kvm-return.json",       Success (Some "example", Enabled { enabled=true; present = true });
+  "stop.json",                   Command (None, Stop);
+  "success.json",                Success (None, Unit);
+  "eject.json",                  Command (None, Eject  ("ide1-cd0", None));
+  "eject_force.json",            Command (None, Eject  ("ide1-cd0", Some true));
+  "change-cd.json",              Command (None, Change ("ide1-cd0", "/tmp/cdrom.iso", None));
+  "change-vnc.json",             Command (None, Change ("vnc", "password", Some "foobar1"));
+  "query-status.json",           Command (None, Query_status);
+  "query-status-result.json",    Success (None, Status "running");
+  "block-io-error.json",         Event { timestamp = 1265044230.450486; event = "BLOCK_IO_ERROR" };
+  "xen-save-devices-state.json", Command (None, Xen_save_devices_state "/tmp/qemu-save");
+  "xen-load-devices-state.json", Command (None, Xen_load_devices_state "/tmp/qemu-resume");
 ]
 
 let string_of_file filename =
