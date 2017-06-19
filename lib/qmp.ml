@@ -39,6 +39,8 @@ type command =
   | Eject of string * bool option
   | Change of string * string * string option
   | System_powerdown
+  | Xen_save_devices_state of string
+  | Xen_load_devices_state of string
 
 type result =
   | Name_list of string list
@@ -116,6 +118,8 @@ let message_of_string x =
                     if List.mem_assoc "arg" arguments then
                       Some (string (List.assoc "arg" arguments))
                     else None)
+      | "xen-save-devices-state" -> Xen_save_devices_state (string (List.assoc "filename" (assoc (List.assoc "arguments" list))))
+      | "xen-load-devices-state" -> Xen_load_devices_state (string (List.assoc "filename" (assoc (List.assoc "arguments" list))))
       | x -> failwith (Printf.sprintf "unknown command %s" x)
     ))
   | `Assoc list when List.mem_assoc "return" list ->
@@ -160,7 +164,10 @@ let json_of_message = function
       | Eject (device, None) -> "eject", [ "device", `String device ]
       | Eject (device, Some force) -> "eject", [ "device", `String device; "force", `Bool force ]
       | Change (device, target, None) -> "change", [ "device", `String device; "target", `String target ]
-      | Change (device, target, Some arg) -> "change", [ "device", `String device; "target", `String target; "arg", `String arg ] in
+      | Change (device, target, Some arg) -> "change", [ "device", `String device; "target", `String target; "arg", `String arg ]
+      | Xen_save_devices_state filename -> "xen-save-devices-state", [ "filename", `String filename]
+      | Xen_load_devices_state filename -> "xen-load-devices-state", [ "filename", `String filename]
+    in
     let args = match args with [] -> [] | args -> [ "arguments", `Assoc args ] in
     `Assoc (("execute", `String cmd) :: id @ args)
   | Event {timestamp; event} ->
