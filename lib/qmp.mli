@@ -53,6 +53,7 @@ type command =
   | System_powerdown
   | Xen_save_devices_state of string
   | Xen_load_devices_state of string
+  | Xen_set_global_dirty_log of bool
 (** commands that may be sent to qemu *)
 
 type message =

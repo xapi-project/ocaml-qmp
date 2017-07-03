@@ -41,6 +41,7 @@ type command =
   | System_powerdown
   | Xen_save_devices_state of string
   | Xen_load_devices_state of string
+  | Xen_set_global_dirty_log of bool
 
 type result =
   | Name_list of string list
@@ -120,6 +121,7 @@ let message_of_string x =
                     else None)
       | "xen-save-devices-state" -> Xen_save_devices_state (string (List.assoc "filename" (assoc (List.assoc "arguments" list))))
       | "xen-load-devices-state" -> Xen_load_devices_state (string (List.assoc "filename" (assoc (List.assoc "arguments" list))))
+      | "xen-set-global-dirty-log" -> Xen_set_global_dirty_log (bool (List.assoc "enable" (assoc (List.assoc "arguments" list))))
       | x -> failwith (Printf.sprintf "unknown command %s" x)
     ))
   | `Assoc list when List.mem_assoc "return" list ->
@@ -167,6 +169,7 @@ let json_of_message = function
       | Change (device, target, Some arg) -> "change", [ "device", `String device; "target", `String target; "arg", `String arg ]
       | Xen_save_devices_state filename -> "xen-save-devices-state", [ "filename", `String filename]
       | Xen_load_devices_state filename -> "xen-load-devices-state", [ "filename", `String filename]
+      | Xen_set_global_dirty_log enable -> "xen-set-global-dirty-log", [ "enable", `Bool enable ]
     in
     let args = match args with [] -> [] | args -> [ "arguments", `Assoc args ] in
     `Assoc (("execute", `String cmd) :: id @ args)
