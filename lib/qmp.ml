@@ -29,11 +29,20 @@ type enabled = {
   present: bool;
 }
 
+type vnc = {
+  enabled : bool;
+  auth    : string;
+  family  : string;
+  service : int;
+  host    : string;
+}
+
 type command =
   | Qmp_capabilities
   | Query_commands
   | Query_kvm
   | Query_status
+  | Query_vnc
   | Stop
   | Cont
   | Eject of string * bool option
@@ -47,6 +56,7 @@ type result =
   | Name_list of string list
   | Enabled of enabled
   | Status of string
+  | Vnc of vnc
   | Unit
 
 type error = {
@@ -104,6 +114,7 @@ let message_of_string x =
       | "system_powerdown" -> System_powerdown
       | "query-commands" -> Query_commands
       | "query-status" -> Query_status
+      | "query-vnc" -> Query_vnc
       | "query-kvm" -> Query_kvm
       | "eject" ->
             let arguments = assoc (List.assoc "arguments" list) in
@@ -130,6 +141,16 @@ let message_of_string x =
       | `Assoc [] -> Unit
       | `Assoc list when List.mem_assoc "status" list ->
         Status (string (List.assoc "status" list))
+      | `Assoc list when List.mem_assoc "enabled" list
+                      && List.mem_assoc "auth" list && List.mem_assoc "family"  list
+                      && List.mem_assoc "service" list && List.mem_assoc "host" list ->
+        Vnc (
+          let enabled = bool (List.assoc "enabled" list)  in
+          let auth = string (List.assoc "auth" list) in
+          let family = string (List.assoc "family" list) in
+          let service = int_of_string (string (List.assoc "service" list)) in
+          let host = string (List.assoc "host" list) in
+          {enabled; auth; family; service; host})
       | `Assoc list when List.mem_assoc "enabled" list ->
         let enabled = bool (List.assoc "enabled" list) in
         let present = bool (List.assoc "present" list) in
@@ -162,6 +183,7 @@ let json_of_message = function
       | System_powerdown -> "system_powerdown", []
       | Query_commands -> "query-commands", []
       | Query_status -> "query-status", []
+      | Query_vnc -> "query-vnc", []
       | Query_kvm -> "query-kvm", []
       | Eject (device, None) -> "eject", [ "device", `String device ]
       | Eject (device, Some force) -> "eject", [ "device", `String device; "force", `Bool force ]
@@ -182,7 +204,9 @@ let json_of_message = function
       | Unit -> `Assoc []
       | Status s -> `Assoc [ "status", `String s ]
       | Enabled {enabled; present} -> `Assoc [ "enabled", `Bool enabled; "present", `Bool present ]
-      | Name_list xs -> `List (List.map (fun x -> `Assoc [ "name", `String x ]) xs) in
+      | Name_list xs -> `List (List.map (fun x -> `Assoc [ "name", `String x ]) xs)
+      | Vnc {enabled; auth; family; service; host} -> `Assoc [ "enabled", `Bool enabled; "auth", `String auth; "family", `String family; "service", `String (string_of_int service); "host", `String host ]
+     in
     `Assoc (("return", result) :: id)
   | Error(id, e) ->
     let id = match id with None -> [] | Some x -> [ "id", `String x ] in

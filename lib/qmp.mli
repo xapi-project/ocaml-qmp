@@ -17,10 +17,19 @@ type enabled = {
   present : bool; (** feature is present (but may not be turned on) *)
 }
 
+type vnc = {
+  enabled : bool;
+  auth    : string;
+  family  : string;
+  service : int;
+  host    : string;
+}
+
 type result =
     Name_list of string list
   | Enabled of enabled
   | Status of string
+  | Vnc of vnc
   | Unit
 (** A successful RPC result *)
 
@@ -46,6 +55,7 @@ type command =
   | Query_commands
   | Query_kvm
   | Query_status
+  | Query_vnc
   | Stop
   | Cont
   | Eject of string * bool option
