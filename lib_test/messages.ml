@@ -34,6 +34,8 @@ let files = [
   "change-vnc.json",               Command (None, Change ("vnc", "password", Some "foobar1"));
   "query-status.json",             Command (None, Query_status);
   "query-status-result.json",      Success (None, Status "running");
+  "query-vnc.json",                Command (None, Query_vnc);
+  "query-vnc-result.json",         Success (None, Vnc {enabled=true; auth="none"; family="ipv4"; service=6034; host="127.0.0.1"});
   "block-io-error.json",           Event { timestamp = 1265044230.450486; event = "BLOCK_IO_ERROR" };
   "xen-save-devices-state.json",   Command (None, Xen_save_devices_state "/tmp/qemu-save");
   "xen-load-devices-state.json",   Command (None, Xen_load_devices_state "/tmp/qemu-resume");
