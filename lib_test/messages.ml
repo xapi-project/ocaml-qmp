@@ -21,7 +21,7 @@ let files = [
   "capabilities.json",             Command (None, Qmp_capabilities);
   "error.json",                    Error (None, { cls="JSONParsing"; descr="Invalid JSON syntax" });
   "greeting.json",                 Greeting { major = 1; minor = 1; micro = 0; package = " (Debian 1.1.0+dfsg-1)" };
-  "powerdown.json",                Event { timestamp = 1258551470.802384; event = "POWERDOWN" };
+  "powerdown.json",                Event { timestamp = (1258551470, 802380); event = "POWERDOWN" };
   "query-commands.json",           Command (None, Query_commands);
   "query-commands-return.json",    Success (None, Name_list [ "qom-list-types"; "change-vnc-password" ]);
   "query_kvm.json",                Command (Some "example", Query_kvm);
@@ -36,7 +36,7 @@ let files = [
   "query-status-result.json",      Success (None, Status "running");
   "query-vnc.json",                Command (None, Query_vnc);
   "query-vnc-result.json",         Success (None, Vnc {enabled=true; auth="none"; family="ipv4"; service=6034; host="127.0.0.1"});
-  "block-io-error.json",           Event { timestamp = 1265044230.450486; event = "BLOCK_IO_ERROR" };
+  "block-io-error.json",           Event { timestamp = (1265044230, 450480); event = "BLOCK_IO_ERROR" };
   "xen-save-devices-state.json",   Command (None, Xen_save_devices_state "/tmp/qemu-save");
   "xen-load-devices-state.json",   Command (None, Xen_load_devices_state "/tmp/qemu-resume");
   "xen-set-global-dirty-log.json", Command (None, Xen_set_global_dirty_log true);
