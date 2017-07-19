@@ -41,7 +41,7 @@ type greeting = {
 }
 
 type event = {
-  timestamp : float; (** time the event occurred in seconds *)
+  timestamp : int * int; (** time the event occurred in (seconds, microseconds) *)
   event : string;    (** type of event *)
 }
 

@@ -20,7 +20,7 @@ type greeting = {
 }
 
 type event = {
-  timestamp: float;
+  timestamp: (int * int);
   event: string;
 }
 
@@ -77,9 +77,9 @@ let message_of_string x =
   let int = function
   | `Int x -> x
   | _ -> failwith "int" in
-  let float = function
+  (* let float = function
   | `Int x -> float_of_int x
-  | _ -> failwith "float" in
+  | _ -> failwith "float" in *)
   let string = function
   | `String x -> x
   | _ -> failwith "string" in
@@ -101,10 +101,9 @@ let message_of_string x =
   | `Assoc list when List.mem_assoc "event" list ->
     let event = string (List.assoc "event" list) in
     let timestamp = assoc (List.assoc "timestamp" list) in
-    let secs = float (List.assoc "seconds" timestamp) in
-    let usecs = float (List.assoc "microseconds" timestamp) in
-    let timestamp = secs +. usecs /. 1e6 in
-    Event { timestamp; event }
+    let secs = int (List.assoc "seconds" timestamp) in
+    let usecs = int (List.assoc "microseconds" timestamp) in
+    Event { timestamp=(secs, usecs); event }
   | `Assoc list when List.mem_assoc "execute" list ->
     let id = if List.mem_assoc "id" list then Some (string (List.assoc "id" list)) else None in
     Command (id, (match string (List.assoc "execute" list) with
@@ -196,8 +195,8 @@ let json_of_message = function
     let args = match args with [] -> [] | args -> [ "arguments", `Assoc args ] in
     `Assoc (("execute", `String cmd) :: id @ args)
   | Event {timestamp; event} ->
-    let usecs, secs = modf timestamp in
-    `Assoc [("event", `String event); ("timestamp", `Assoc [ "seconds", `Int (int_of_float secs); "microseconds", `Int (int_of_float (usecs *. 1e6)) ])]
+    let secs, usecs = timestamp in
+    `Assoc [("event", `String event); ("timestamp", `Assoc [ "seconds", `Int secs; "microseconds", `Int usecs])]
   | Success(id, result) ->
     let id = match id with None -> [] | Some x -> [ "id", `String x ] in
     let result = match result with

@@ -2,4 +2,4 @@
      "data": { "device": "ide0-hd1",
                "operation": "write",
                "action": "stop" },
-     "timestamp": { "seconds": 1265044230, "microseconds": 450486 } }
+     "timestamp": { "seconds": 1265044230, "microseconds": 450480 } }
