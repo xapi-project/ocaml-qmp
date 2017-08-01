@@ -37,12 +37,18 @@ type vnc = {
   host    : string;
 }
 
+type xen_platform_pv_driver_info = {
+  product_num : int;
+  build_num   : int;
+}
+
 type command =
   | Qmp_capabilities
   | Query_commands
   | Query_kvm
   | Query_status
   | Query_vnc
+  | Query_xen_platform_pv_driver_info
   | Stop
   | Cont
   | Eject of string * bool option
@@ -57,6 +63,7 @@ type result =
   | Enabled of enabled
   | Status of string
   | Vnc of vnc
+  | Xen_platform_pv_driver_info of xen_platform_pv_driver_info
   | Unit
 
 type error = {
@@ -115,6 +122,7 @@ let message_of_string x =
       | "query-status" -> Query_status
       | "query-vnc" -> Query_vnc
       | "query-kvm" -> Query_kvm
+      | "query-xen-platform-pv-driver-info" -> Query_xen_platform_pv_driver_info
       | "eject" ->
             let arguments = assoc (List.assoc "arguments" list) in
             Eject (string (List.assoc "device" arguments),
@@ -150,6 +158,12 @@ let message_of_string x =
           let service = int_of_string (string (List.assoc "service" list)) in
           let host = string (List.assoc "host" list) in
           {enabled; auth; family; service; host})
+      | `Assoc list when List.mem_assoc "product-num" list
+                      && List.mem_assoc "build-num" list ->
+        Xen_platform_pv_driver_info (
+          let product_num = int (List.assoc "product-num" list) in
+          let build_num = int (List.assoc "build-num" list) in
+          {product_num; build_num})
       | `Assoc list when List.mem_assoc "enabled" list ->
         let enabled = bool (List.assoc "enabled" list) in
         let present = bool (List.assoc "present" list) in
@@ -184,6 +198,7 @@ let json_of_message = function
       | Query_status -> "query-status", []
       | Query_vnc -> "query-vnc", []
       | Query_kvm -> "query-kvm", []
+      | Query_xen_platform_pv_driver_info -> "query-xen-platform-pv-driver-info", []
       | Eject (device, None) -> "eject", [ "device", `String device ]
       | Eject (device, Some force) -> "eject", [ "device", `String device; "force", `Bool force ]
       | Change (device, target, None) -> "change", [ "device", `String device; "target", `String target ]
@@ -205,6 +220,7 @@ let json_of_message = function
       | Enabled {enabled; present} -> `Assoc [ "enabled", `Bool enabled; "present", `Bool present ]
       | Name_list xs -> `List (List.map (fun x -> `Assoc [ "name", `String x ]) xs)
       | Vnc {enabled; auth; family; service; host} -> `Assoc [ "enabled", `Bool enabled; "auth", `String auth; "family", `String family; "service", `String (string_of_int service); "host", `String host ]
+      | Xen_platform_pv_driver_info { product_num; build_num } -> `Assoc [ "product-num", `Int product_num; "build-num", `Int build_num; ]
      in
     `Assoc (("return", result) :: id)
   | Error(id, e) ->
