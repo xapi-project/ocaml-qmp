@@ -156,36 +156,40 @@ let message_of_string x =
     ))
   | `Assoc list when List.mem_assoc "return" list ->
     let id = if List.mem_assoc "id" list then Some (string (List.assoc "id" list)) else None in
-    Success (id, (match List.assoc "return" list with
-      | `Assoc [] -> Unit
+    (match List.assoc "return" list with
+      | `Assoc [] -> Success (id, Unit)
       | `Assoc list when List.mem_assoc "status" list ->
-        Status (string (List.assoc "status" list))
+        Success (id, Status (string (List.assoc "status" list)))
       | `Assoc list when List.mem_assoc "enabled" list
                       && List.mem_assoc "auth" list && List.mem_assoc "family"  list
                       && List.mem_assoc "service" list && List.mem_assoc "host" list ->
-        Vnc (
+        Success (id, Vnc (
           let enabled = bool (List.assoc "enabled" list)  in
           let auth = string (List.assoc "auth" list) in
           let family = string (List.assoc "family" list) in
           let service = int_of_string (string (List.assoc "service" list)) in
           let host = string (List.assoc "host" list) in
-          {enabled; auth; family; service; host})
+          {enabled; auth; family; service; host}))
       | `Assoc list when List.mem_assoc "product-num" list
-                      && List.mem_assoc "build-num" list ->
-        Xen_platform_pv_driver_info (
-          let product_num = int (List.assoc "product-num" list) in
-          let build_num = int (List.assoc "build-num" list) in
-          {product_num; build_num})
+                      && List.mem_assoc "build-num" list -> (
+        try
+          Success (id, Xen_platform_pv_driver_info (
+            let product_num = int (List.assoc "product-num" list) in
+            let build_num = int (List.assoc "build-num" list) in
+            {product_num; build_num}))
+        with e ->
+          Error(None, { cls = "JSONParsing"; descr = (Printf.sprintf "%s:%s" (Printexc.to_string e) x) })
+        )
       | `Assoc list when List.mem_assoc "enabled" list ->
         let enabled = bool (List.assoc "enabled" list) in
         let present = bool (List.assoc "present" list) in
-        Enabled {enabled; present}
+        Success (id, Enabled {enabled; present})
       | `List ((`Assoc pair :: _) as list) when List.mem_assoc "name" pair ->
-        Name_list (List.map (function
+        Success (id, Name_list (List.map (function
                              | `Assoc [ "name", `String x ] -> x
-                             | _ -> failwith "assoc") list)
+                             | _ -> failwith "assoc") list))
       | x -> failwith (Printf.sprintf "unknown result %s" (Yojson.Safe.to_string x))
-    ))
+    )
   | `Assoc list when List.mem_assoc "error" list ->
     let id = if List.mem_assoc "id" list then Some (string (List.assoc "id" list)) else None in
     let error = assoc (List.assoc "error" list) in

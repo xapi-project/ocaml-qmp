@@ -42,6 +42,7 @@ let files = [
   "xen-set-global-dirty-log.json", Command (None, Xen_set_global_dirty_log true);
   "query-xen-platform-pv-driver-info.json", Command (None, Query_xen_platform_pv_driver_info);
   "query-xen-platform-pv-driver-info-result.json", Success (None, Xen_platform_pv_driver_info { product_num=3; build_num=1; });
+  "query-xen-platform-pv-driver-info-result-error-notanint.json", Error (None, { cls="JSONParsing"; descr="Failure(\"int\"):{\"return\": {\"product-num\": \"foo\", \"build-num\": 1}}"; });
 ]
 
 let string_of_file filename =
