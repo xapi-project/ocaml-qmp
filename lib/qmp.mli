@@ -25,11 +25,17 @@ type vnc = {
   host    : string;
 }
 
+type xen_platform_pv_driver_info = {
+  product_num : int;
+  build_num   : int;
+}
+
 type result =
     Name_list of string list
   | Enabled of enabled
   | Status of string
   | Vnc of vnc
+  | Xen_platform_pv_driver_info of xen_platform_pv_driver_info
   | Unit
 (** A successful RPC result *)
 
@@ -56,6 +62,7 @@ type command =
   | Query_kvm
   | Query_status
   | Query_vnc
+  | Query_xen_platform_pv_driver_info
   | Stop
   | Cont
   | Eject of string * bool option

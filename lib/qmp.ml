@@ -37,12 +37,18 @@ type vnc = {
   host    : string;
 }
 
+type xen_platform_pv_driver_info = {
+  product_num : int;
+  build_num   : int;
+}
+
 type command =
   | Qmp_capabilities
   | Query_commands
   | Query_kvm
   | Query_status
   | Query_vnc
+  | Query_xen_platform_pv_driver_info
   | Stop
   | Cont
   | Eject of string * bool option
@@ -57,6 +63,7 @@ type result =
   | Enabled of enabled
   | Status of string
   | Vnc of vnc
+  | Xen_platform_pv_driver_info of xen_platform_pv_driver_info
   | Unit
 
 type error = {
@@ -72,6 +79,18 @@ type message =
   | Error of (id option * error)
   | Success of (id option * result)
   | Event of event
+
+module Event = struct
+
+  (* Emitted when XEN PV driver write build number to io-port 0x10,
+     marking the end of preamble:
+   # <- { "event": "XEN_PLATFORM_PV_DRIVER_INFO",
+   #      "data": { "product-num": 3, "build-num": 1},
+   #      "timestamp": { "seconds": 1500394278, "microseconds": 878290 } }
+  *)
+  let _XEN_PLATFORM_PV_DRIVER_INFO = "XEN_PLATFORM_PV_DRIVER_INFO"
+end
+
 
 let message_of_string x =
   let int = function
@@ -115,6 +134,7 @@ let message_of_string x =
       | "query-status" -> Query_status
       | "query-vnc" -> Query_vnc
       | "query-kvm" -> Query_kvm
+      | "query-xen-platform-pv-driver-info" -> Query_xen_platform_pv_driver_info
       | "eject" ->
             let arguments = assoc (List.assoc "arguments" list) in
             Eject (string (List.assoc "device" arguments),
@@ -136,30 +156,40 @@ let message_of_string x =
     ))
   | `Assoc list when List.mem_assoc "return" list ->
     let id = if List.mem_assoc "id" list then Some (string (List.assoc "id" list)) else None in
-    Success (id, (match List.assoc "return" list with
-      | `Assoc [] -> Unit
+    (match List.assoc "return" list with
+      | `Assoc [] -> Success (id, Unit)
       | `Assoc list when List.mem_assoc "status" list ->
-        Status (string (List.assoc "status" list))
+        Success (id, Status (string (List.assoc "status" list)))
       | `Assoc list when List.mem_assoc "enabled" list
                       && List.mem_assoc "auth" list && List.mem_assoc "family"  list
                       && List.mem_assoc "service" list && List.mem_assoc "host" list ->
-        Vnc (
+        Success (id, Vnc (
           let enabled = bool (List.assoc "enabled" list)  in
           let auth = string (List.assoc "auth" list) in
           let family = string (List.assoc "family" list) in
           let service = int_of_string (string (List.assoc "service" list)) in
           let host = string (List.assoc "host" list) in
-          {enabled; auth; family; service; host})
+          {enabled; auth; family; service; host}))
+      | `Assoc list when List.mem_assoc "product-num" list
+                      && List.mem_assoc "build-num" list -> (
+        try
+          Success (id, Xen_platform_pv_driver_info (
+            let product_num = int (List.assoc "product-num" list) in
+            let build_num = int (List.assoc "build-num" list) in
+            {product_num; build_num}))
+        with e ->
+          Error(None, { cls = "JSONParsing"; descr = (Printf.sprintf "%s:%s" (Printexc.to_string e) x) })
+        )
       | `Assoc list when List.mem_assoc "enabled" list ->
         let enabled = bool (List.assoc "enabled" list) in
         let present = bool (List.assoc "present" list) in
-        Enabled {enabled; present}
+        Success (id, Enabled {enabled; present})
       | `List ((`Assoc pair :: _) as list) when List.mem_assoc "name" pair ->
-        Name_list (List.map (function
+        Success (id, Name_list (List.map (function
                              | `Assoc [ "name", `String x ] -> x
-                             | _ -> failwith "assoc") list)
+                             | _ -> failwith "assoc") list))
       | x -> failwith (Printf.sprintf "unknown result %s" (Yojson.Safe.to_string x))
-    ))
+    )
   | `Assoc list when List.mem_assoc "error" list ->
     let id = if List.mem_assoc "id" list then Some (string (List.assoc "id" list)) else None in
     let error = assoc (List.assoc "error" list) in
@@ -184,6 +214,7 @@ let json_of_message = function
       | Query_status -> "query-status", []
       | Query_vnc -> "query-vnc", []
       | Query_kvm -> "query-kvm", []
+      | Query_xen_platform_pv_driver_info -> "query-xen-platform-pv-driver-info", []
       | Eject (device, None) -> "eject", [ "device", `String device ]
       | Eject (device, Some force) -> "eject", [ "device", `String device; "force", `Bool force ]
       | Change (device, target, None) -> "change", [ "device", `String device; "target", `String target ]
@@ -205,6 +236,7 @@ let json_of_message = function
       | Enabled {enabled; present} -> `Assoc [ "enabled", `Bool enabled; "present", `Bool present ]
       | Name_list xs -> `List (List.map (fun x -> `Assoc [ "name", `String x ]) xs)
       | Vnc {enabled; auth; family; service; host} -> `Assoc [ "enabled", `Bool enabled; "auth", `String auth; "family", `String family; "service", `String (string_of_int service); "host", `String host ]
+      | Xen_platform_pv_driver_info { product_num; build_num } -> `Assoc [ "product-num", `Int product_num; "build-num", `Int build_num; ]
      in
     `Assoc (("return", result) :: id)
   | Error(id, e) ->
