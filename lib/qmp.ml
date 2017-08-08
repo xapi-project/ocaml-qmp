@@ -42,6 +42,11 @@ type xen_platform_pv_driver_info = {
   build_num   : int;
 }
 
+type fd_info = {
+  fd       : int;
+  fdset_id : int;
+}
+
 type command =
   | Qmp_capabilities
   | Query_commands
@@ -57,6 +62,8 @@ type command =
   | Xen_save_devices_state of string
   | Xen_load_devices_state of string
   | Xen_set_global_dirty_log of bool
+  | Add_fd of int
+  | Blockdev_change_medium of string * string
 
 type result =
   | Name_list of string list
@@ -64,6 +71,7 @@ type result =
   | Status of string
   | Vnc of vnc
   | Xen_platform_pv_driver_info of xen_platform_pv_driver_info
+  | Fd_info of fd_info
   | Unit
 
 type error = {
@@ -152,6 +160,10 @@ let message_of_string x =
       | "xen-save-devices-state" -> Xen_save_devices_state (string (List.assoc "filename" (assoc (List.assoc "arguments" list))))
       | "xen-load-devices-state" -> Xen_load_devices_state (string (List.assoc "filename" (assoc (List.assoc "arguments" list))))
       | "xen-set-global-dirty-log" -> Xen_set_global_dirty_log (bool (List.assoc "enable" (assoc (List.assoc "arguments" list))))
+      | "add-fd" -> Add_fd (int (List.assoc "fdset-id" (assoc (List.assoc "arguments" list))))
+      | "blockdev-change-medium" ->
+          let arguments = assoc (List.assoc "arguments" list) in
+            Blockdev_change_medium (string (List.assoc "device" arguments), string (List.assoc "filename" arguments))
       | x -> failwith (Printf.sprintf "unknown command %s" x)
     ))
   | `Assoc list when List.mem_assoc "return" list ->
@@ -188,6 +200,15 @@ let message_of_string x =
         Success (id, Name_list (List.map (function
                              | `Assoc [ "name", `String x ] -> x
                              | _ -> failwith "assoc") list))
+      | `Assoc list when List.mem_assoc "fdset-id" list -> (
+        try
+          Success (id, Fd_info (
+            let fd = int (List.assoc "fd" list) in
+            let fdset_id = int (List.assoc "fdset-id" list) in
+            {fd; fdset_id}))
+        with e ->
+          Error(None, { cls = "JSONParsing"; descr = (Printf.sprintf "%s:%s" (Printexc.to_string e) x) })
+        )
       | x -> failwith (Printf.sprintf "unknown result %s" (Yojson.Safe.to_string x))
     )
   | `Assoc list when List.mem_assoc "error" list ->
@@ -222,6 +243,8 @@ let json_of_message = function
       | Xen_save_devices_state filename -> "xen-save-devices-state", [ "filename", `String filename]
       | Xen_load_devices_state filename -> "xen-load-devices-state", [ "filename", `String filename]
       | Xen_set_global_dirty_log enable -> "xen-set-global-dirty-log", [ "enable", `Bool enable ]
+      | Add_fd id -> "add-fd", [ "fdset-id", `Int id ]
+      | Blockdev_change_medium (device, filename) -> "blockdev-change-medium", ["device", `String device; "filename", `String filename ]
     in
     let args = match args with [] -> [] | args -> [ "arguments", `Assoc args ] in
     `Assoc (("execute", `String cmd) :: id @ args)
@@ -237,6 +260,7 @@ let json_of_message = function
       | Name_list xs -> `List (List.map (fun x -> `Assoc [ "name", `String x ]) xs)
       | Vnc {enabled; auth; family; service; host} -> `Assoc [ "enabled", `Bool enabled; "auth", `String auth; "family", `String family; "service", `String (string_of_int service); "host", `String host ]
       | Xen_platform_pv_driver_info { product_num; build_num } -> `Assoc [ "product-num", `Int product_num; "build-num", `Int build_num; ]
+      | Fd_info {fd; fdset_id} -> `Assoc [ "fd", `Int fd; "fdset-id", `Int fdset_id ]
      in
     `Assoc (("return", result) :: id)
   | Error(id, e) ->
