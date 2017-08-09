@@ -30,12 +30,18 @@ type xen_platform_pv_driver_info = {
   build_num   : int;
 }
 
+type fd_info = {
+  fd       : int;
+  fdset_id : int;
+}
+
 type result =
     Name_list of string list
   | Enabled of enabled
   | Status of string
   | Vnc of vnc
   | Xen_platform_pv_driver_info of xen_platform_pv_driver_info
+  | Fd_info of fd_info
   | Unit
 (** A successful RPC result *)
 
@@ -71,6 +77,8 @@ type command =
   | Xen_save_devices_state of string
   | Xen_load_devices_state of string
   | Xen_set_global_dirty_log of bool
+  | Add_fd of int
+  | Blockdev_change_medium of string * string
 (** commands that may be sent to qemu *)
 
 type message =
