@@ -62,7 +62,8 @@ type command =
   | Xen_save_devices_state of string
   | Xen_load_devices_state of string
   | Xen_set_global_dirty_log of bool
-  | Add_fd of int
+  | Add_fd of int option
+  | Remove_fd of int
   | Blockdev_change_medium of string * string
 
 type result =
@@ -133,39 +134,53 @@ let message_of_string x =
     Event { timestamp=(secs, usecs); event }
   | `Assoc list when List.mem_assoc "execute" list ->
     let id = if List.mem_assoc "id" list then Some (string (List.assoc "id" list)) else None in
-    Command (id, (match string (List.assoc "execute" list) with
-      | "qmp_capabilities" -> Qmp_capabilities
-      | "stop" -> Stop
-      | "cont" -> Cont
-      | "system_powerdown" -> System_powerdown
-      | "query-commands" -> Query_commands
-      | "query-status" -> Query_status
-      | "query-vnc" -> Query_vnc
-      | "query-kvm" -> Query_kvm
-      | "query-xen-platform-pv-driver-info" -> Query_xen_platform_pv_driver_info
+    (match string (List.assoc "execute" list) with
+      | "qmp_capabilities" -> Command (id, Qmp_capabilities)
+      | "stop" -> Command (id, Stop)
+      | "cont" -> Command (id, Cont)
+      | "system_powerdown" -> Command (id, System_powerdown)
+      | "query-commands" -> Command (id, Query_commands)
+      | "query-status" -> Command (id, Query_status)
+      | "query-vnc" -> Command (id, Query_vnc)
+      | "query-kvm" -> Command (id, Query_kvm)
+      | "query-xen-platform-pv-driver-info" -> Command (id, Query_xen_platform_pv_driver_info)
       | "eject" ->
-            let arguments = assoc (List.assoc "arguments" list) in
-            Eject (string (List.assoc "device" arguments),
-                   if List.mem_assoc "force" arguments then
-                     Some (bool (List.assoc "force" arguments))
-                   else
-                     None)
+          let arguments = assoc (List.assoc "arguments" list) in
+            Command (id, Eject (string (List.assoc "device" arguments),
+                    if List.mem_assoc "force" arguments then
+                      Some (bool (List.assoc "force" arguments))
+                    else
+                      None))
       | "change" ->
           let arguments = assoc (List.assoc "arguments" list) in
-            Change (string (List.assoc "device" arguments),
+            Command (id, Change (string (List.assoc "device" arguments),
                     string (List.assoc "target" arguments),
                     if List.mem_assoc "arg" arguments then
                       Some (string (List.assoc "arg" arguments))
-                    else None)
-      | "xen-save-devices-state" -> Xen_save_devices_state (string (List.assoc "filename" (assoc (List.assoc "arguments" list))))
-      | "xen-load-devices-state" -> Xen_load_devices_state (string (List.assoc "filename" (assoc (List.assoc "arguments" list))))
-      | "xen-set-global-dirty-log" -> Xen_set_global_dirty_log (bool (List.assoc "enable" (assoc (List.assoc "arguments" list))))
-      | "add-fd" -> Add_fd (int (List.assoc "fdset-id" (assoc (List.assoc "arguments" list))))
+                    else None))
+      | "xen-save-devices-state" -> Command (id, Xen_save_devices_state (string (List.assoc "filename" (assoc (List.assoc "arguments" list)))))
+      | "xen-load-devices-state" -> Command (id, Xen_load_devices_state (string (List.assoc "filename" (assoc (List.assoc "arguments" list)))))
+      | "xen-set-global-dirty-log" -> Command (id, Xen_set_global_dirty_log (bool (List.assoc "enable" (assoc (List.assoc "arguments" list)))))
+      | "add-fd" -> (
+          try
+            Command (id, Add_fd (if List.mem_assoc "arguments" list then
+                      Some (int (List.assoc "fdset-id" (assoc (List.assoc "arguments" list))))
+                    else
+                      None))
+          with e ->
+            Error(None, { cls = "JSONParsing"; descr = (Printf.sprintf "%s:%s" (Printexc.to_string e) x) })
+          )
+      | "remove-fd" -> (
+          try
+            Command (id, Remove_fd (int (List.assoc "fdset-id" (assoc (List.assoc "arguments" list)))))
+          with e ->
+            Error(None, { cls = "JSONParsing"; descr = (Printf.sprintf "%s:%s" (Printexc.to_string e) x) })
+          )
       | "blockdev-change-medium" ->
           let arguments = assoc (List.assoc "arguments" list) in
-            Blockdev_change_medium (string (List.assoc "device" arguments), string (List.assoc "filename" arguments))
+            Command (id, Blockdev_change_medium (string (List.assoc "device" arguments), string (List.assoc "filename" arguments)))
       | x -> failwith (Printf.sprintf "unknown command %s" x)
-    ))
+    )
   | `Assoc list when List.mem_assoc "return" list ->
     let id = if List.mem_assoc "id" list then Some (string (List.assoc "id" list)) else None in
     (match List.assoc "return" list with
@@ -243,7 +258,8 @@ let json_of_message = function
       | Xen_save_devices_state filename -> "xen-save-devices-state", [ "filename", `String filename]
       | Xen_load_devices_state filename -> "xen-load-devices-state", [ "filename", `String filename]
       | Xen_set_global_dirty_log enable -> "xen-set-global-dirty-log", [ "enable", `Bool enable ]
-      | Add_fd id -> "add-fd", [ "fdset-id", `Int id ]
+      | Add_fd id -> "add-fd", (match id with None -> [] | Some x -> [ "fdset-id", `Int x ])
+      | Remove_fd id -> "remove-fd", ["fdset-id", `Int id]
       | Blockdev_change_medium (device, filename) -> "blockdev-change-medium", ["device", `String device; "filename", `String filename ]
     in
     let args = match args with [] -> [] | args -> [ "arguments", `Assoc args ] in
