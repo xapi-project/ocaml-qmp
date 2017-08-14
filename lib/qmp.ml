@@ -99,126 +99,156 @@ module Event = struct
   let _XEN_PLATFORM_PV_DRIVER_INFO = "XEN_PLATFORM_PV_DRIVER_INFO"
 end
 
+(* class associated with a error message from an Invalid JSON syntax *)
+let _JSONParsing = "JSONParsing"
 
-let message_of_string x =
-  let int = function
-  | `Int x -> x
-  | _ -> failwith "int" in
-  (* let float = function
-  | `Int x -> float_of_int x
-  | _ -> failwith "float" in *)
-  let string = function
-  | `String x -> x
-  | _ -> failwith "string" in
-  let assoc = function
-  | `Assoc x -> x
-  | _ -> failwith "assoc" in
-  let bool = function
-  | `Bool x -> x
-  | _ -> failwith "bool" in
-  match Yojson.Safe.from_string x with
-  | `Assoc
-     [ ("QMP", `Assoc [ ("version", `Assoc [ "qemu", `Assoc version; "package", `String package ]); ("capabilities", _)] )] ->
-    Greeting {
-      minor = int (List.assoc "minor" version);
-      major = int (List.assoc "major" version);
-      micro = int (List.assoc "micro" version);
-      package = package;
+let message_of_string str =
+  let module Y = Yojson.Safe in
+  let module U = Yojson.Safe.Util in
+
+  let subset_of xs args = List.for_all (fun x->List.mem x args) xs in
+
+  let id json = json |> U.member "id" |> U.to_string_option in
+
+  let greeting json =
+    let qmp = json |> U.member "QMP" in
+    let version x = qmp |> U.member "version" |> U.member "qemu" |> U.member x |> U.to_int in
+    { minor   = version "minor"
+    ; major   = version "major"
+    ; micro   = version "micro"
+    ; package = qmp |> U.member "version" |> U.member "package" |> U.to_string
     }
-  | `Assoc list when List.mem_assoc "event" list ->
-    let event = string (List.assoc "event" list) in
-    let timestamp = assoc (List.assoc "timestamp" list) in
-    let secs = int (List.assoc "seconds" timestamp) in
-    let usecs = int (List.assoc "microseconds" timestamp) in
-    Event { timestamp=(secs, usecs); event }
-  | `Assoc list when List.mem_assoc "execute" list ->
-    let id = if List.mem_assoc "id" list then Some (string (List.assoc "id" list)) else None in
-    Command (id, (match string (List.assoc "execute" list) with
-      | "qmp_capabilities" -> Qmp_capabilities
-      | "stop" -> Stop
-      | "cont" -> Cont
-      | "system_powerdown" -> System_powerdown
-      | "query-commands" -> Query_commands
-      | "query-status" -> Query_status
-      | "query-vnc" -> Query_vnc
-      | "query-kvm" -> Query_kvm
-      | "query-xen-platform-pv-driver-info" -> Query_xen_platform_pv_driver_info
-      | "eject" ->
-            let arguments = assoc (List.assoc "arguments" list) in
-            Eject (string (List.assoc "device" arguments),
-                   if List.mem_assoc "force" arguments then
-                     Some (bool (List.assoc "force" arguments))
-                   else
-                     None)
-      | "change" ->
-          let arguments = assoc (List.assoc "arguments" list) in
-            Change (string (List.assoc "device" arguments),
-                    string (List.assoc "target" arguments),
-                    if List.mem_assoc "arg" arguments then
-                      Some (string (List.assoc "arg" arguments))
-                    else None)
-      | "xen-save-devices-state" -> Xen_save_devices_state (string (List.assoc "filename" (assoc (List.assoc "arguments" list))))
-      | "xen-load-devices-state" -> Xen_load_devices_state (string (List.assoc "filename" (assoc (List.assoc "arguments" list))))
-      | "xen-set-global-dirty-log" -> Xen_set_global_dirty_log (bool (List.assoc "enable" (assoc (List.assoc "arguments" list))))
-      | "add-fd" -> Add_fd (int (List.assoc "fdset-id" (assoc (List.assoc "arguments" list))))
-      | "blockdev-change-medium" ->
-          let arguments = assoc (List.assoc "arguments" list) in
-            Blockdev_change_medium (string (List.assoc "device" arguments), string (List.assoc "filename" arguments))
-      | x -> failwith (Printf.sprintf "unknown command %s" x)
-    ))
-  | `Assoc list when List.mem_assoc "return" list ->
-    let id = if List.mem_assoc "id" list then Some (string (List.assoc "id" list)) else None in
-    (match List.assoc "return" list with
-      | `Assoc [] -> Success (id, Unit)
-      | `Assoc list when List.mem_assoc "status" list ->
-        Success (id, Status (string (List.assoc "status" list)))
-      | `Assoc list when List.mem_assoc "enabled" list
-                      && List.mem_assoc "auth" list && List.mem_assoc "family"  list
-                      && List.mem_assoc "service" list && List.mem_assoc "host" list ->
-        Success (id, Vnc (
-          let enabled = bool (List.assoc "enabled" list)  in
-          let auth = string (List.assoc "auth" list) in
-          let family = string (List.assoc "family" list) in
-          let service = int_of_string (string (List.assoc "service" list)) in
-          let host = string (List.assoc "host" list) in
-          {enabled; auth; family; service; host}))
-      | `Assoc list when List.mem_assoc "product-num" list
-                      && List.mem_assoc "build-num" list -> (
-        try
-          Success (id, Xen_platform_pv_driver_info (
-            let product_num = int (List.assoc "product-num" list) in
-            let build_num = int (List.assoc "build-num" list) in
-            {product_num; build_num}))
-        with e ->
-          Error(None, { cls = "JSONParsing"; descr = (Printf.sprintf "%s:%s" (Printexc.to_string e) x) })
+  in
+
+  let event json =
+    let ts x = json |> U.member "timestamp" |> U.member x |> U.to_int in
+    { timestamp = (ts "seconds", ts "microseconds")
+    ; event     = json |> U.member "event" |> U.to_string
+    }
+  in
+
+  let execute json =
+    let arguments = U.member "arguments" in
+    let eject json =
+      let device = json |> arguments |> U.member "device" |> U.to_string in
+      let force  = json |> arguments |> U.member "force"  |> U.to_bool_option in
+      (device, force)
+    in
+    let change json =
+      let device = json |> arguments |> U.member "device" |> U.to_string in
+      let target = json |> arguments |> U.member "target" |> U.to_string in
+      let arg    = json |> arguments |> U.member "arg"    |> U.to_string_option in
+      (device, target, arg)
+    in
+    let xen_save_devices_state json =
+      json |> arguments |> U.member "filename" |> U.to_string
+    in
+    let xen_load_devices_state json =
+      json |> arguments |> U.member "filename" |> U.to_string
+    in
+    let xen_set_global_dirty_log json =
+      json |> arguments |> U.member "enable" |> U.to_bool
+    in
+    let add_fd json =
+      json |> arguments |> U.member "fdset-id" |> U.to_int
+    in
+    let blockdev_change_medium json =
+      let device   = json |> arguments |> U.member "device"   |> U.to_string in
+      let filename = json |> arguments |> U.member "filename" |> U.to_string in
+      (device, filename)
+    in
+    let cmd = match json |> U.member "execute" |> U.to_string with
+    | "qmp_capabilities"         -> Qmp_capabilities
+    | "stop"                     -> Stop
+    | "cont"                     -> Cont
+    | "system_powerdown"         -> System_powerdown
+    | "query-commands"           -> Query_commands
+    | "query-status"             -> Query_status
+    | "query-vnc"                -> Query_vnc
+    | "query-kvm"                -> Query_kvm
+    | "query-xen-platform-pv-driver-info" -> Query_xen_platform_pv_driver_info
+    | "eject"                    -> json |> eject  |> fun (x, y) -> Eject (x, y)
+    | "change"                   -> json |> change |> fun (x, y, z) -> Change (x, y, z)
+    | "add-fd"                   -> json |> add_fd |> fun x -> Add_fd x
+    | "xen-save-devices-state"   -> json |> xen_save_devices_state   |> fun x -> Xen_save_devices_state x
+    | "xen-load-devices-state"   -> json |> xen_load_devices_state   |> fun x -> Xen_load_devices_state x
+    | "xen-set-global-dirty-log" -> json |> xen_set_global_dirty_log |> fun x -> Xen_set_global_dirty_log x
+    | "blockdev-change-medium"   -> json |> blockdev_change_medium   |> fun (x, y) -> Blockdev_change_medium (x, y)
+    | x -> Printf.sprintf "unknown command %s" x |> failwith
+    in
+    (json |> id, cmd)
+  in
+
+  let return json =
+    let status json =
+      json |> U.member "status" |> U.to_string
+    in
+    let query_vnc json =
+      let enabled = json |> U.member "enabled" |> U.to_bool in
+      let auth    = json |> U.member "auth"    |> U.to_string in
+      let family  = json |> U.member "family"  |> U.to_string in
+      let service = json |> U.member "service" |> U.to_string in
+      let host    = json |> U.member "host"    |> U.to_string in
+      { enabled; auth; family; service = service |> int_of_string; host}
+    in
+    let xen_platform_pv_driver_info json =
+      let product_num = json |> U.member "product-num" |> U.to_int in
+      let build_num   = json |> U.member "build-num"   |> U.to_int in
+      {product_num; build_num}
+    in
+    let query_kvm json =
+      let enabled = json |> U.member "enabled" |> U.to_bool in
+      let present = json |> U.member "present" |> U.to_bool in
+      {enabled; present}
+    in
+    let name_list json =
+      json |> U.convert_each (fun x -> x |> U.member "name" |> U.to_string)
+    in
+    let add_fd json =
+      let fd       = json |> U.member "fd"       |> U.to_int in
+      let fdset_id = json |> U.member "fdset-id" |> U.to_int in
+      {fd; fdset_id}
+    in
+    let result =
+      let return = json |> U.member "return" in
+      return |> function
+      | `List  _ -> return |> name_list |> fun x -> Name_list x
+      | `Assoc _ -> (return |> U.keys |> function
+        | []         -> Unit
+        | x when x |> subset_of ["status"]                   -> return |> status    |> fun x -> Status x
+        | x when x |> subset_of ["enabled"; "auth"; "family"; "service"; "host"] -> return |> query_vnc |> fun x -> Vnc x
+        | x when x |> subset_of ["product-num"; "build-num"] -> return |> xen_platform_pv_driver_info   |> fun x -> Xen_platform_pv_driver_info x
+        | x when x |> subset_of ["enabled"; "present"]       -> return |> query_kvm |> fun x -> Enabled x
+        | x when x |> subset_of ["fd"; "fdset-id"]           -> return |> add_fd    |> fun x -> Fd_info x
+        | _ -> failwith (Printf.sprintf "unknown result %s" (Y.to_string return))
         )
-      | `Assoc list when List.mem_assoc "enabled" list ->
-        let enabled = bool (List.assoc "enabled" list) in
-        let present = bool (List.assoc "present" list) in
-        Success (id, Enabled {enabled; present})
-      | `List ((`Assoc pair :: _) as list) when List.mem_assoc "name" pair ->
-        Success (id, Name_list (List.map (function
-                             | `Assoc [ "name", `String x ] -> x
-                             | _ -> failwith "assoc") list))
-      | `Assoc list when List.mem_assoc "fdset-id" list -> (
-        try
-          Success (id, Fd_info (
-            let fd = int (List.assoc "fd" list) in
-            let fdset_id = int (List.assoc "fdset-id" list) in
-            {fd; fdset_id}))
-        with e ->
-          Error(None, { cls = "JSONParsing"; descr = (Printf.sprintf "%s:%s" (Printexc.to_string e) x) })
-        )
-      | x -> failwith (Printf.sprintf "unknown result %s" (Yojson.Safe.to_string x))
-    )
-  | `Assoc list when List.mem_assoc "error" list ->
-    let id = if List.mem_assoc "id" list then Some (string (List.assoc "id" list)) else None in
-    let error = assoc (List.assoc "error" list) in
-    let cls = string (List.assoc "class" error) in
-    let descr = string (List.assoc "desc" error) in
-    Error (id, {cls; descr})
-  | x ->
-    failwith (Printf.sprintf "message_of_string %s" (Yojson.Safe.to_string x))
+      | _ -> failwith (Printf.sprintf "unknown result type %s" (Y.to_string json))
+    in
+    (json |> id, result)
+  in
+
+  let error json =
+    let cls   = json |> U.member "error" |> U.member "class" |> U.to_string in
+    let descr = json |> U.member "error" |> U.member "desc"  |> U.to_string in
+    ( json |> id, {cls; descr})
+  in
+
+  let parse_err descr = Error (None, { cls = _JSONParsing; descr }) in
+
+  try
+    let json = Y.from_string str in
+    match json |> U.keys with
+    | x when x |> subset_of ["QMP"]     -> json |> greeting |> fun x -> Greeting x
+    | x when x |> subset_of ["event"]   -> json |> event    |> fun x -> Event x
+    | x when x |> subset_of ["execute"] -> json |> execute  |> fun x -> Command x
+    | x when x |> subset_of ["return"]  -> json |> return   |> fun x -> Success x
+    | x when x |> subset_of ["error"]   -> json |> error    |> fun x -> Error x
+    | _ -> Printf.sprintf "can't decode %s" str |> fun x -> failwith x
+  with
+  | U.Type_error (msg, js) ->
+    parse_err (Printf.sprintf "%s %s in %s" msg (Y.to_string js) str)
+  | e ->
+    parse_err (Printf.sprintf "%s in %s" (Printexc.to_string e)  str)
 
 let json_of_message = function
   | Greeting { major; minor; micro; package } ->

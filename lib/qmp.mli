@@ -89,6 +89,8 @@ type message =
   | Event of event
 (** an individual message sent or received to or from qemu *)
 
+val _JSONParsing : string
+
 val message_of_string : string -> message
 val string_of_message : message -> string
 

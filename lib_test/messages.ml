@@ -42,11 +42,11 @@ let files = [
   "xen-set-global-dirty-log.json", Command (None, Xen_set_global_dirty_log true);
   "add-fd.json",                   Command (None, Add_fd 4);
   "add-fd-return.json",            Success (None, Fd_info { fdset_id=4; fd=21; });
-  "add-fd-return-error-notanint.json", Error (None, { cls="JSONParsing"; descr="Failure(\"int\"):{\"return\": {\"fd\": \"foo\", \"fdset-id\": 4}}"; });
+  "add-fd-return-error-notanint.json", Error (None, { cls="JSONParsing"; descr="Expected int, got string \"foo\" in {\"return\": {\"fd\": \"foo\", \"fdset-id\": 4}}"; });
   "blockdev-change-medium.json",   Command (None, Blockdev_change_medium ("ide1-cd0", "/dev/fd/21"));
   "query-xen-platform-pv-driver-info.json", Command (None, Query_xen_platform_pv_driver_info);
   "query-xen-platform-pv-driver-info-result.json", Success (None, Xen_platform_pv_driver_info { product_num=3; build_num=1; });
-  "query-xen-platform-pv-driver-info-result-error-notanint.json", Error (None, { cls="JSONParsing"; descr="Failure(\"int\"):{\"return\": {\"product-num\": \"foo\", \"build-num\": 1}}"; });
+  "query-xen-platform-pv-driver-info-result-error-notanint.json", Error (None, { cls="JSONParsing"; descr="Expected int, got string \"foo\" in {\"return\": {\"product-num\": \"foo\", \"build-num\": 1}}"; });
 ]
 
 let string_of_file filename =
