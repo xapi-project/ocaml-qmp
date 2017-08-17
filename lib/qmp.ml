@@ -62,7 +62,8 @@ type command =
   | Xen_save_devices_state of string
   | Xen_load_devices_state of string
   | Xen_set_global_dirty_log of bool
-  | Add_fd of int
+  | Add_fd of int option
+  | Remove_fd of int
   | Blockdev_change_medium of string * string
 
 type result =
@@ -129,6 +130,7 @@ let message_of_string str =
 
   let execute json =
     let arguments = U.member "arguments" in
+    let flatten_option = function Some x -> x | None -> None in
     let eject json =
       let device = json |> arguments |> U.member "device" |> U.to_string in
       let force  = json |> arguments |> U.member "force"  |> U.to_bool_option in
@@ -150,6 +152,9 @@ let message_of_string str =
       json |> arguments |> U.member "enable" |> U.to_bool
     in
     let add_fd json =
+      json |> arguments |> U.to_option (fun x -> x |> U.member "fdset-id" |> U.to_int_option) |> flatten_option
+    in
+    let remove_fd json =
       json |> arguments |> U.member "fdset-id" |> U.to_int
     in
     let blockdev_change_medium json =
@@ -170,6 +175,7 @@ let message_of_string str =
     | "eject"                    -> json |> eject  |> fun (x, y) -> Eject (x, y)
     | "change"                   -> json |> change |> fun (x, y, z) -> Change (x, y, z)
     | "add-fd"                   -> json |> add_fd |> fun x -> Add_fd x
+    | "remove-fd"                -> json |> remove_fd                |> fun x -> Remove_fd x
     | "xen-save-devices-state"   -> json |> xen_save_devices_state   |> fun x -> Xen_save_devices_state x
     | "xen-load-devices-state"   -> json |> xen_load_devices_state   |> fun x -> Xen_load_devices_state x
     | "xen-set-global-dirty-log" -> json |> xen_set_global_dirty_log |> fun x -> Xen_set_global_dirty_log x
@@ -273,7 +279,8 @@ let json_of_message = function
       | Xen_save_devices_state filename -> "xen-save-devices-state", [ "filename", `String filename]
       | Xen_load_devices_state filename -> "xen-load-devices-state", [ "filename", `String filename]
       | Xen_set_global_dirty_log enable -> "xen-set-global-dirty-log", [ "enable", `Bool enable ]
-      | Add_fd id -> "add-fd", [ "fdset-id", `Int id ]
+      | Add_fd id -> "add-fd", (match id with None -> [] | Some x -> [ "fdset-id", `Int x ])
+      | Remove_fd id -> "remove-fd", ["fdset-id", `Int id]
       | Blockdev_change_medium (device, filename) -> "blockdev-change-medium", ["device", `String device; "filename", `String filename ]
     in
     let args = match args with [] -> [] | args -> [ "arguments", `Assoc args ] in
