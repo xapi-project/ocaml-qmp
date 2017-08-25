@@ -3,8 +3,12 @@ sudo: required
 install:
   - wget https://raw.githubusercontent.com/ocaml/ocaml-ci-scripts/master/.travis-opam.sh
 script:
+  - cp qmp.opam opam
   - bash -ex .travis-opam.sh
 env:
+  global:
+    - PINS="qmp:."
+    - PACKAGE="qmp"
   matrix:
     - OCAML_VERSION=4.02 BASE_REMOTE=git://github.com/xapi-project/xs-opam
     - OCAML_VERSION=latest EXTRA_REMOTES=git://github.com/xapi-project/xs-opam
