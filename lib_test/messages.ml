@@ -15,7 +15,7 @@
 open OUnit2
 open Qmp
 
-let my_dir = "lib_test"
+let my_dir = "."
 
 let files = [
   "capabilities.json",             Command (None, Qmp_capabilities);
