@@ -1,3 +1,4 @@
+0.10.0 (30-Aug-2017) 
 * Port to jbuilder build tool
 * CP-23007: Add support for add-fd and remove-fd QMP message
 * CA-261854: simplify JSON decoding using JSON combinators
