@@ -10,7 +10,8 @@ env:
     - PINS="qmp:."
     - PACKAGE="qmp"
   matrix:
-    - OCAML_VERSION=4.02 BASE_REMOTE=git://github.com/xapi-project/xs-opam
+    - OCAML_VERSION=4.02 BASE_REMOTE=git://github.com/xapi-project/xs-opam#1.8.0
+    - OCAML_VERSION=4.04 BASE_REMOTE=git://github.com/xapi-project/xs-opam
     - OCAML_VERSION=latest EXTRA_REMOTES=git://github.com/xapi-project/xs-opam
 matrix:
   fast_finish: true
