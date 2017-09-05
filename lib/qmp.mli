@@ -35,6 +35,12 @@ type fd_info = {
   fdset_id : int;
 }
 
+(** QOM properties - https://elmarco.fedorapeople.org/qemu-qmp-ref.pdf*)
+type qom = {
+  name : string;
+  ty   : string;
+}
+
 type result =
     Name_list of string list
   | Enabled of enabled
@@ -43,6 +49,7 @@ type result =
   | Xen_platform_pv_driver_info of xen_platform_pv_driver_info
   | Fd_info of fd_info
   | Unit
+  | Qom of qom list
 (** A successful RPC result *)
 
 type greeting = {
@@ -81,6 +88,7 @@ type command =
   | Remove_fd of int
   | Blockdev_change_medium of string * string
   | Device_del of string
+  | Qom_list of string
 (** commands that may be sent to qemu *)
 
 type message =
