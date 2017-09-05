@@ -65,6 +65,7 @@ type command =
   | Add_fd of int option
   | Remove_fd of int
   | Blockdev_change_medium of string * string
+  | Device_del of string
 
 type result =
   | Name_list of string list
@@ -162,6 +163,9 @@ let message_of_string str =
       let filename = json |> arguments |> U.member "filename" |> U.to_string in
       (device, filename)
     in
+    let device_del json =
+      json |> arguments |> U.member "id" |> U.to_string
+    in
     let cmd = match json |> U.member "execute" |> U.to_string with
     | "qmp_capabilities"         -> Qmp_capabilities
     | "stop"                     -> Stop
@@ -180,6 +184,7 @@ let message_of_string str =
     | "xen-load-devices-state"   -> json |> xen_load_devices_state   |> fun x -> Xen_load_devices_state x
     | "xen-set-global-dirty-log" -> json |> xen_set_global_dirty_log |> fun x -> Xen_set_global_dirty_log x
     | "blockdev-change-medium"   -> json |> blockdev_change_medium   |> fun (x, y) -> Blockdev_change_medium (x, y)
+    | "device_del"               -> json |> device_del               |> fun x -> Device_del x
     | x -> Printf.sprintf "unknown command %s" x |> failwith
     in
     (json |> id, cmd)
@@ -282,6 +287,7 @@ let json_of_message = function
       | Add_fd id -> "add-fd", (match id with None -> [] | Some x -> [ "fdset-id", `Int x ])
       | Remove_fd id -> "remove-fd", ["fdset-id", `Int id]
       | Blockdev_change_medium (device, filename) -> "blockdev-change-medium", ["device", `String device; "filename", `String filename ]
+      | Device_del id -> "device_del", [ "id", `String id ]
     in
     let args = match args with [] -> [] | args -> [ "arguments", `Assoc args ] in
     `Assoc (("execute", `String cmd) :: id @ args)

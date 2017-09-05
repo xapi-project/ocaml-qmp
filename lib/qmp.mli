@@ -80,6 +80,7 @@ type command =
   | Add_fd of int option
   | Remove_fd of int
   | Blockdev_change_medium of string * string
+  | Device_del of string
 (** commands that may be sent to qemu *)
 
 type message =
