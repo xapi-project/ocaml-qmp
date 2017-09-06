@@ -47,6 +47,23 @@ type fd_info = {
   fdset_id : int;
 }
 
+type qom = {
+  name : string;
+  ty   : string;
+}
+
+type params = {
+  bus     : string;
+  hostbus : string;
+  hostport: string;
+}
+
+type device = {
+  driver : string;
+  id     : string;
+  params : params option;
+}
+
 type command =
   | Qmp_capabilities
   | Query_commands
@@ -65,6 +82,9 @@ type command =
   | Add_fd of int option
   | Remove_fd of int
   | Blockdev_change_medium of string * string
+  | Device_add of string * string * (string * string * string) option
+  | Device_del of string
+  | Qom_list of string
 
 type result =
   | Name_list of string list
@@ -74,6 +94,7 @@ type result =
   | Xen_platform_pv_driver_info of xen_platform_pv_driver_info
   | Fd_info of fd_info
   | Unit
+  | Qom of qom list
 
 type error = {
   cls: string;
@@ -127,7 +148,6 @@ let message_of_string str =
     ; event     = json |> U.member "event" |> U.to_string
     }
   in
-
   let execute json =
     let arguments = U.member "arguments" in
     let flatten_option = function Some x -> x | None -> None in
@@ -162,6 +182,24 @@ let message_of_string str =
       let filename = json |> arguments |> U.member "filename" |> U.to_string in
       (device, filename)
     in
+    let device_add json =
+      let driver = json |> arguments |> U.member "driver" |> U.to_string in
+      let id     = json |> arguments |> U.member "id"     |> U.to_string in
+      let maybe_mem_of k x = x |> U.member k |> U.to_option U.to_string in
+      let params = json |> arguments |> fun x ->
+      match maybe_mem_of "bus" x, maybe_mem_of "hostbus" x, maybe_mem_of "hostport" x with
+        | Some bus, Some hostbus, Some hostport -> Some (bus, hostbus, hostport)
+        | None, None, None -> None
+        | _ -> failwith (Printf.sprintf "All of bus, hostbus, hostport fields are needed but only some passed in %s" (Y.to_string json))
+      in
+      (driver, id, params)
+    in
+    let device_del json =
+      json |> arguments |> U.member "id" |> U.to_string
+    in
+    let qom_list json =
+      json |> arguments |> U.member "path" |> U.to_string
+    in
     let cmd = match json |> U.member "execute" |> U.to_string with
     | "qmp_capabilities"         -> Qmp_capabilities
     | "stop"                     -> Stop
@@ -180,6 +218,9 @@ let message_of_string str =
     | "xen-load-devices-state"   -> json |> xen_load_devices_state   |> fun x -> Xen_load_devices_state x
     | "xen-set-global-dirty-log" -> json |> xen_set_global_dirty_log |> fun x -> Xen_set_global_dirty_log x
     | "blockdev-change-medium"   -> json |> blockdev_change_medium   |> fun (x, y) -> Blockdev_change_medium (x, y)
+    | "device_add"               -> json |> device_add               |> fun (x, y, z) -> Device_add (x, y, z)
+    | "device_del"               -> json |> device_del               |> fun x -> Device_del x
+    | "qom-list"                 -> json |> qom_list                 |> fun x -> Qom_list x
     | x -> Printf.sprintf "unknown command %s" x |> failwith
     in
     (json |> id, cmd)
@@ -215,10 +256,18 @@ let message_of_string str =
       let fdset_id = json |> U.member "fdset-id" |> U.to_int in
       {fd; fdset_id}
     in
+    let qom json =
+      let mem_of k x = x |> U.member k |> U.to_string in
+      json |> U.convert_each (fun x -> {name = (mem_of "name" x); ty = (mem_of "type" x)})
+    in
     let result =
       let return = json |> U.member "return" in
       return |> function
-      | `List  _ -> return |> name_list |> fun x -> Name_list x
+      | `List  _ -> (return |> U.convert_each U.keys |> List.flatten |> function
+        | x when x |> subset_of ["name"; "type"]  -> return |> qom |> fun x -> Qom x
+        | x when x |> subset_of ["name"]  -> return |> name_list |> fun x -> Name_list x
+        | _ -> failwith (Printf.sprintf "unknown result %s" (Y.to_string return))
+      )
       | `Assoc _ -> (return |> U.keys |> function
         | []         -> Unit
         | x when x |> subset_of ["status"]                   -> return |> status    |> fun x -> Status x
@@ -282,6 +331,13 @@ let json_of_message = function
       | Add_fd id -> "add-fd", (match id with None -> [] | Some x -> [ "fdset-id", `Int x ])
       | Remove_fd id -> "remove-fd", ["fdset-id", `Int id]
       | Blockdev_change_medium (device, filename) -> "blockdev-change-medium", ["device", `String device; "filename", `String filename ]
+      | Device_add (driver, id, params) -> "device_add", (
+        match params with
+        | None -> [ "driver", `String driver; "id", `String id ]
+        | Some (x, y, z) -> [ "driver", `String driver; "id", `String id; "bus", `String x; "hostbus", `String y; "hostport", `String z ]
+      )
+      | Device_del id -> "device_del", [ "id", `String id ]
+      | Qom_list path -> "qom-list", ["path", `String path ]
     in
     let args = match args with [] -> [] | args -> [ "arguments", `Assoc args ] in
     `Assoc (("execute", `String cmd) :: id @ args)
@@ -298,6 +354,7 @@ let json_of_message = function
       | Vnc {enabled; auth; family; service; host} -> `Assoc [ "enabled", `Bool enabled; "auth", `String auth; "family", `String family; "service", `String (string_of_int service); "host", `String host ]
       | Xen_platform_pv_driver_info { product_num; build_num } -> `Assoc [ "product-num", `Int product_num; "build-num", `Int build_num; ]
       | Fd_info {fd; fdset_id} -> `Assoc [ "fd", `Int fd; "fdset-id", `Int fdset_id ]
+      | Qom xs -> `List (List.map (fun {name; ty} -> `Assoc [ "name", `String name; "type",`String ty ]) xs)
      in
     `Assoc (("return", result) :: id)
   | Error(id, e) ->

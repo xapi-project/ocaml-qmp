@@ -35,6 +35,25 @@ type fd_info = {
   fdset_id : int;
 }
 
+(** QOM properties - https://wiki.qemu.org/index.php/Documentation
+                     https://qemu.weilnetz.de/doc/qemu-qmp-ref.html*)
+type qom = {
+  name : string;
+  ty   : string;
+}
+
+type params = {
+  bus     : string;
+  hostbus : string;
+  hostport: string;
+}
+
+type device = {
+  driver : string;
+  id     : string;
+  params : params option;
+}
+
 type result =
     Name_list of string list
   | Enabled of enabled
@@ -43,6 +62,7 @@ type result =
   | Xen_platform_pv_driver_info of xen_platform_pv_driver_info
   | Fd_info of fd_info
   | Unit
+  | Qom of qom list
 (** A successful RPC result *)
 
 type greeting = {
@@ -80,6 +100,9 @@ type command =
   | Add_fd of int option
   | Remove_fd of int
   | Blockdev_change_medium of string * string
+  | Device_add of string * string * (string * string * string) option
+  | Device_del of string
+  | Qom_list of string
 (** commands that may be sent to qemu *)
 
 type message =
