@@ -35,10 +35,23 @@ type fd_info = {
   fdset_id : int;
 }
 
-(** QOM properties - https://elmarco.fedorapeople.org/qemu-qmp-ref.pdf*)
+(** QOM properties - https://wiki.qemu.org/index.php/Documentation
+                     https://qemu.weilnetz.de/doc/qemu-qmp-ref.html*)
 type qom = {
   name : string;
   ty   : string;
+}
+
+type params = {
+  bus     : string;
+  hostbus : string;
+  hostport: string;
+}
+
+type device = {
+  driver : string;
+  id     : string;
+  params : params option;
 }
 
 type result =
@@ -87,6 +100,7 @@ type command =
   | Add_fd of int option
   | Remove_fd of int
   | Blockdev_change_medium of string * string
+  | Device_add of string * string * (string * string * string) option
   | Device_del of string
   | Qom_list of string
 (** commands that may be sent to qemu *)

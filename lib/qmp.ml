@@ -52,6 +52,18 @@ type qom = {
   ty   : string;
 }
 
+type params = {
+  bus     : string;
+  hostbus : string;
+  hostport: string;
+}
+
+type device = {
+  driver : string;
+  id     : string;
+  params : params option;
+}
+
 type command =
   | Qmp_capabilities
   | Query_commands
@@ -70,6 +82,7 @@ type command =
   | Add_fd of int option
   | Remove_fd of int
   | Blockdev_change_medium of string * string
+  | Device_add of string * string * (string * string * string) option
   | Device_del of string
   | Qom_list of string
 
@@ -135,7 +148,6 @@ let message_of_string str =
     ; event     = json |> U.member "event" |> U.to_string
     }
   in
-
   let execute json =
     let arguments = U.member "arguments" in
     let flatten_option = function Some x -> x | None -> None in
@@ -170,6 +182,18 @@ let message_of_string str =
       let filename = json |> arguments |> U.member "filename" |> U.to_string in
       (device, filename)
     in
+    let device_add json =
+      let driver = json |> arguments |> U.member "driver" |> U.to_string in
+      let id     = json |> arguments |> U.member "id"     |> U.to_string in
+      let maybe_mem_of k x = x |> U.member k |> U.to_option U.to_string in
+      let params = json |> arguments |> fun x ->
+      match maybe_mem_of "bus" x, maybe_mem_of "hostbus" x, maybe_mem_of "hostport" x with
+        | Some bus, Some hostbus, Some hostport -> Some (bus, hostbus, hostport)
+        | None, None, None -> None
+        | _ -> failwith (Printf.sprintf "All of bus, hostbus, hostport fields are needed but only some passed in %s" (Y.to_string json))
+      in
+      (driver, id, params)
+    in
     let device_del json =
       json |> arguments |> U.member "id" |> U.to_string
     in
@@ -194,6 +218,7 @@ let message_of_string str =
     | "xen-load-devices-state"   -> json |> xen_load_devices_state   |> fun x -> Xen_load_devices_state x
     | "xen-set-global-dirty-log" -> json |> xen_set_global_dirty_log |> fun x -> Xen_set_global_dirty_log x
     | "blockdev-change-medium"   -> json |> blockdev_change_medium   |> fun (x, y) -> Blockdev_change_medium (x, y)
+    | "device_add"               -> json |> device_add               |> fun (x, y, z) -> Device_add (x, y, z)
     | "device_del"               -> json |> device_del               |> fun x -> Device_del x
     | "qom-list"                 -> json |> qom_list                 |> fun x -> Qom_list x
     | x -> Printf.sprintf "unknown command %s" x |> failwith
@@ -233,14 +258,14 @@ let message_of_string str =
     in
     let qom json =
       let mem_of k x = x |> U.member k |> U.to_string in
-      json |> U.convert_each (fun x -> {name = (mem_of "name" x);ty = (mem_of "type" x)})
+      json |> U.convert_each (fun x -> {name = (mem_of "name" x); ty = (mem_of "type" x)})
     in
     let result =
       let return = json |> U.member "return" in
       return |> function
       | `List  _ -> (return |> U.convert_each U.keys |> List.flatten |> function
-        | x when (subset_of ["name"; "type"] x) -> return |> qom |> fun x -> Qom x
-        | x when (subset_of ["name"] x) -> return |> name_list |> fun x -> Name_list x
+        | x when x |> subset_of ["name"; "type"]  -> return |> qom |> fun x -> Qom x
+        | x when x |> subset_of ["name"]  -> return |> name_list |> fun x -> Name_list x
         | _ -> failwith (Printf.sprintf "unknown result %s" (Y.to_string return))
       )
       | `Assoc _ -> (return |> U.keys |> function
@@ -306,6 +331,11 @@ let json_of_message = function
       | Add_fd id -> "add-fd", (match id with None -> [] | Some x -> [ "fdset-id", `Int x ])
       | Remove_fd id -> "remove-fd", ["fdset-id", `Int id]
       | Blockdev_change_medium (device, filename) -> "blockdev-change-medium", ["device", `String device; "filename", `String filename ]
+      | Device_add (driver, id, params) -> "device_add", (
+        match params with
+        | None -> [ "driver", `String driver; "id", `String id ]
+        | Some (x, y, z) -> [ "driver", `String driver; "id", `String id; "bus", `String x; "hostbus", `String y; "hostport", `String z ]
+      )
       | Device_del id -> "device_del", [ "id", `String id ]
       | Qom_list path -> "qom-list", ["path", `String path ]
     in
