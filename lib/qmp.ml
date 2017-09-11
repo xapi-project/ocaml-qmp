@@ -19,11 +19,6 @@ type greeting = {
   package: string;
 }
 
-type event = {
-  timestamp: (int * int);
-  event: string;
-}
-
 type enabled = {
   enabled: bool;
   present: bool;
@@ -96,6 +91,16 @@ type result =
   | Unit
   | Qom of qom list
 
+type event_data =
+    RTC_CHANGE of int
+    (* extend this to support other qmp events data*)
+
+type event = {
+  timestamp: (int * int);
+  event: string;
+  data: event_data option
+}
+
 type error = {
   cls: string;
   descr: string;
@@ -143,11 +148,21 @@ let message_of_string str =
   in
 
   let event json =
+    let event_data event data =
+      let rtc_offset data = data |> U.member "offset" |> U.to_int in
+      match event with
+        | "RTC_CHANGE"      -> data |> rtc_offset |> fun x -> Some (RTC_CHANGE x)
+        (* ignore data for other events *)
+        | _ -> None
+    in
+    let event = json |> U.member "event" |> U.to_string in
     let ts x = json |> U.member "timestamp" |> U.member x |> U.to_int in
     { timestamp = (ts "seconds", ts "microseconds")
-    ; event     = json |> U.member "event" |> U.to_string
+    ; event
+    ; data = event_data event ( json |> U.member "data")
     }
   in
+
   let execute json =
     let arguments = U.member "arguments" in
     let flatten_option = function Some x -> x | None -> None in
@@ -341,9 +356,22 @@ let json_of_message = function
     in
     let args = match args with [] -> [] | args -> [ "arguments", `Assoc args ] in
     `Assoc (("execute", `String cmd) :: id @ args)
-  | Event {timestamp; event} ->
+  | Event {timestamp; event; data} ->
     let secs, usecs = timestamp in
-    `Assoc [("event", `String event); ("timestamp", `Assoc [ "seconds", `Int secs; "microseconds", `Int usecs])]
+    let event_data = match data with
+      | None -> []
+      | Some x -> begin
+          let data = match x with
+            | RTC_CHANGE r -> `Assoc [ "offset", `Int r ]
+          in
+          [("data", data)]
+        end
+    in
+    `Assoc (
+      ("event", `String event)
+      :: ("timestamp", `Assoc [ "seconds", `Int secs; "microseconds", `Int usecs])
+      :: event_data
+    )
   | Success(id, result) ->
     let id = match id with None -> [] | Some x -> [ "id", `String x ] in
     let result = match result with

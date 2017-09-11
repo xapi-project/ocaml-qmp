@@ -72,9 +72,14 @@ type greeting = {
   package : string; (** some information about the (binary?) package *)
 }
 
+type event_data =
+    RTC_CHANGE of int
+   (* extend this to support other qmp events data*)
+
 type event = {
   timestamp : int * int; (** time the event occurred in (seconds, microseconds) *)
   event : string;    (** type of event *)
+  data: event_data option
 }
 
 type error = { cls : string; descr : string; }
