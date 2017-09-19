@@ -92,7 +92,7 @@ type result =
   | Qom of qom list
 
 type event_data =
-    RTC_CHANGE of int
+    RTC_CHANGE of int64
     (* extend this to support other qmp events data*)
 
 type event = {
@@ -149,7 +149,12 @@ let message_of_string str =
 
   let event json =
     let event_data event data =
-      let rtc_offset data = data |> U.member "offset" |> U.to_int in
+      let to_int64 = function
+        | `Int i -> Int64.of_int i
+        | `Intlit i -> Int64.of_string i
+        | unknown -> failwith (Printf.sprintf "Unable to convert %s to int64" (Y.to_string unknown))
+      in
+      let rtc_offset data = data |> U.member "offset" |> to_int64 in
       match event with
         | "RTC_CHANGE"      -> data |> rtc_offset |> fun x -> Some (RTC_CHANGE x)
         (* ignore data for other events *)
@@ -362,7 +367,7 @@ let json_of_message = function
       | None -> []
       | Some x -> begin
           let data = match x with
-            | RTC_CHANGE r -> `Assoc [ "offset", `Int r ]
+            | RTC_CHANGE r -> `Assoc [ "offset", `Intlit (Int64.to_string r) ]
           in
           [("data", data)]
         end

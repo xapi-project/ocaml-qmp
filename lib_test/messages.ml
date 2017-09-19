@@ -37,7 +37,7 @@ let files = [
   "query-vnc.json",                Command (None, Query_vnc);
   "query-vnc-result.json",         Success (None, Vnc {enabled=true; auth="none"; family="ipv4"; service=6034; host="127.0.0.1"});
   "block-io-error.json",           Event { timestamp = (1265044230, 450480); event = "BLOCK_IO_ERROR"; data = None };
-  "rtc-change.json",               Event { timestamp = (1267020223, 435656); event = "RTC_CHANGE"; data = Some (RTC_CHANGE 78) };
+  "rtc-change.json",               Event { timestamp = (1267020223, 435656); event = "RTC_CHANGE"; data = Some (RTC_CHANGE 78L) };
   "xen-save-devices-state.json",   Command (None, Xen_save_devices_state "/tmp/qemu-save");
   "xen-load-devices-state.json",   Command (None, Xen_load_devices_state "/tmp/qemu-resume");
   "xen-set-global-dirty-log.json", Command (None, Xen_set_global_dirty_log true);

@@ -73,7 +73,7 @@ type greeting = {
 }
 
 type event_data =
-    RTC_CHANGE of int
+    RTC_CHANGE of int64
    (* extend this to support other qmp events data*)
 
 type event = {
