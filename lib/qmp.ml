@@ -116,17 +116,6 @@ type message =
   | Success of (id option * result)
   | Event of event
 
-module Event = struct
-
-  (* Emitted when XEN PV driver write build number to io-port 0x10,
-     marking the end of preamble:
-   # <- { "event": "XEN_PLATFORM_PV_DRIVER_INFO",
-   #      "data": { "product-num": 3, "build-num": 1},
-   #      "timestamp": { "seconds": 1500394278, "microseconds": 878290 } }
-  *)
-  let _XEN_PLATFORM_PV_DRIVER_INFO = "XEN_PLATFORM_PV_DRIVER_INFO"
-end
-
 (* class associated with a error message from an Invalid JSON syntax *)
 let _JSONParsing = "JSONParsing"
 
