@@ -92,7 +92,8 @@ type result =
   | Qom of qom list
 
 type event_data =
-    RTC_CHANGE of int64
+  | RTC_CHANGE of int64
+  | XEN_PLATFORM_PV_DRIVER_INFO of xen_platform_pv_driver_info
     (* extend this to support other qmp events data*)
 
 type event = {
@@ -133,9 +134,19 @@ let message_of_string str =
   let module Y = Yojson.Safe in
   let module U = Yojson.Safe.Util in
 
+  (* functions shared by the message handlers *)
+
   let subset_of xs args = List.for_all (fun x->List.mem x args) xs in
 
   let id json = json |> U.member "id" |> U.to_string_option in
+
+  let xen_platform_pv_driver_info json =
+    let product_num = json |> U.member "product-num" |> U.to_int in
+    let build_num   = json |> U.member "build-num"   |> U.to_int in
+    {product_num; build_num}
+  in
+
+  (* message handlers *)
 
   let greeting json =
     let qmp = json |> U.member "QMP" in
@@ -156,7 +167,8 @@ let message_of_string str =
       in
       let rtc_offset data = data |> U.member "offset" |> to_int64 in
       match event with
-        | "RTC_CHANGE"      -> data |> rtc_offset |> fun x -> Some (RTC_CHANGE x)
+        | "RTC_CHANGE"                  -> data |> rtc_offset |> fun x -> Some (RTC_CHANGE x)
+        | "XEN_PLATFORM_PV_DRIVER_INFO" -> data |> xen_platform_pv_driver_info |> fun x -> Some (XEN_PLATFORM_PV_DRIVER_INFO x)
         (* ignore data for other events *)
         | _ -> None
     in
@@ -257,11 +269,6 @@ let message_of_string str =
       let service = json |> U.member "service" |> U.to_string in
       let host    = json |> U.member "host"    |> U.to_string in
       { enabled; auth; family; service = service |> int_of_string; host}
-    in
-    let xen_platform_pv_driver_info json =
-      let product_num = json |> U.member "product-num" |> U.to_int in
-      let build_num   = json |> U.member "build-num"   |> U.to_int in
-      {product_num; build_num}
     in
     let query_kvm json =
       let enabled = json |> U.member "enabled" |> U.to_bool in
@@ -368,6 +375,7 @@ let json_of_message = function
       | Some x -> begin
           let data = match x with
             | RTC_CHANGE r -> `Assoc [ "offset", `Intlit (Int64.to_string r) ]
+            | XEN_PLATFORM_PV_DRIVER_INFO x -> `Assoc [ "product-num", `Int x.product_num; "build-num", `Int x.build_num ]
           in
           [("data", data)]
         end
