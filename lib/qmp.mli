@@ -73,7 +73,13 @@ type greeting = {
 }
 
 type event_data =
-    RTC_CHANGE of int64
+
+    (** emitted when the guest changes the RTC time *)
+  | RTC_CHANGE of int64
+
+    (** emitted when the XEN PV driver writes build number to io-port 0x10, marking the end of the preamble *)
+  | XEN_PLATFORM_PV_DRIVER_INFO of xen_platform_pv_driver_info
+
    (* extend this to support other qmp events data*)
 
 type event = {
