@@ -54,8 +54,8 @@ let files = [
   "query-xen-platform-pv-driver-info-result.json", Success (None, Xen_platform_pv_driver_info { product_num=3; build_num=1; });
   "query-xen-platform-pv-driver-info-result-error-notanint.json", Error (None, { cls="JSONParsing"; descr="Expected int, got string \"foo\" in {\"return\": {\"product-num\": \"foo\", \"build-num\": 1}}"; });
   "device_del.json",               Command (None, Device_del "usb1");
-  "device_add_usbcontroller.json", Command (None, Device_add ("usb-ehci", "ehci", None));
-  "device_add_usbdevice.json",     Command (None, Device_add ("usb-host", "usb1", Some ("ehci.0","2","2")));
+  "device_add_usbcontroller.json", Command (None, Device_add { driver="usb-ehci"; device=USB { id="ehci"; params=None}});
+  "device_add_usbdevice.json",     Command (None, Device_add { driver="usb-host"; device=USB { id="usb1"; params=Some { bus="ehci.0"; hostbus="2"; hostport="2"}}});
   "qom_list_peripheral.json",      Command (None, Qom_list "/machine/peripheral");
   "qom_list_peripheral_result.json", Success (None, Qom [{name="usb1"; ty="child"}; {name="type"; ty="string"}]);
 ]
