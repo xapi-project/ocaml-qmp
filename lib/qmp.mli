@@ -44,10 +44,21 @@ type qom = {
 
 module Device : sig
   module USB : sig
+    module Driver : sig
+      type t = USB_EHCI | USB_HOST
+      val string_of : t -> string
+    end
     type params_t = { bus: string; hostbus: string; hostport: string; }
     type t = { id: string; params: params_t option }
   end
-  type t = USB of USB.t
+  module VCPU : sig
+    module Driver : sig
+      type t = QEMU32_I386_CPU
+      val string_of : t -> string
+    end
+    type t = { id: string; socket_id: int; core_id: int; thread_id: int; }
+  end
+  type t = USB of USB.t | VCPU of VCPU.t
 end
 
 (* according to qapi schema at https://github.com/qemu/qemu/blob/master/qapi-schema.json#L1478 *)

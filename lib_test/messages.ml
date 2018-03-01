@@ -54,8 +54,9 @@ let files = [
   "query-xen-platform-pv-driver-info-result.json", Success (None, Xen_platform_pv_driver_info { product_num=3; build_num=1; });
   "query-xen-platform-pv-driver-info-result-error-notanint.json", Error (None, { cls="JSONParsing"; descr="Expected int, got string \"foo\" in {\"return\": {\"product-num\": \"foo\", \"build-num\": 1}}"; });
   "device_del.json",               Command (None, Device_del "usb1");
-  "device_add_usbcontroller.json", Command (None, Device_add { driver="usb-ehci"; device=USB { id="ehci"; params=None}});
-  "device_add_usbdevice.json",     Command (None, Device_add { driver="usb-host"; device=USB { id="usb1"; params=Some { bus="ehci.0"; hostbus="2"; hostport="2"}}});
+  "device_add_usbcontroller.json", Command (None, Device_add { driver=Device.USB.Driver.(string_of USB_EHCI); device=USB { id="ehci"; params=None}});
+  "device_add_usbdevice.json",     Command (None, Device_add { driver=Device.USB.Driver.(string_of USB_HOST); device=USB { id="usb1"; params=Some { bus="ehci.0"; hostbus="2"; hostport="2"}}});
+  "device_add_vcpu.json",          Command (None, Device_add { driver=Device.VCPU.Driver.(string_of QEMU32_I386_CPU); device=VCPU {id="cpu-1-2-0";socket_id=1;core_id=2;thread_id=0}});
   "qom_list_peripheral.json",      Command (None, Qom_list "/machine/peripheral");
   "qom_list_peripheral_result.json", Success (None, Qom [{name="usb1"; ty="child"}; {name="type"; ty="string"}]);
 ]

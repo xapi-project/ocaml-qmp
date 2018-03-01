@@ -49,10 +49,26 @@ type qom = {
 
 module Device = struct
   module USB = struct
+    module Driver = struct
+      type t = USB_EHCI | USB_HOST
+      let string_of = function
+        | USB_EHCI -> "usb-ehci"
+        | USB_HOST -> "usb-host"
+      let all = List.map string_of [ USB_EHCI; USB_HOST ]
+    end
     type params_t = { bus: string; hostbus: string; hostport: string; }
     type t = { id: string; params: params_t option }
   end
-  type t = USB of USB.t
+  module VCPU = struct
+    module Driver = struct
+      type t = QEMU32_I386_CPU
+      let string_of = function
+        | QEMU32_I386_CPU -> "qemu32-i386-cpu"
+      let all = List.map string_of [ QEMU32_I386_CPU ]
+    end
+    type t = { id: string; socket_id: int; core_id: int; thread_id: int; }
+  end
+  type t = USB of USB.t | VCPU of VCPU.t
 end
 
 (* according to qapi schema at https://github.com/qemu/qemu/blob/master/qapi-schema.json#L1478 *)
@@ -219,11 +235,19 @@ let message_of_string str =
         in
         Device.USB {id; params}
       in
+      let device_add_vcpu json =
+        let id        = json |> arguments |> U.member "id"        |> U.to_string in
+        let socket_id = json |> arguments |> U.member "socket-id" |> U.to_int in
+        let core_id   = json |> arguments |> U.member "core-id"   |> U.to_int in
+        let thread_id = json |> arguments |> U.member "thread-id" |> U.to_int in
+        Device.VCPU { id; socket_id; core_id; thread_id}
+      in
 
-      driver
-      |> function
-        | _ -> device_add_usb json
-      |> fun device -> { driver; device }
+      (driver |> function
+        | x when Device.USB.Driver.all  |> List.mem x -> device_add_usb  json
+        | x when Device.VCPU.Driver.all |> List.mem x -> device_add_vcpu json
+        | _ -> failwith (Printf.sprintf "unknown driver %s" driver)
+      ) |> fun device -> { driver; device }
     in
     let device_del json =
       json |> arguments |> U.member "id" |> U.to_string
@@ -357,13 +381,14 @@ let json_of_message = function
       | Add_fd id -> "add-fd", (match id with None -> [] | Some x -> [ "fdset-id", `Int x ])
       | Remove_fd id -> "remove-fd", ["fdset-id", `Int id]
       | Blockdev_change_medium (device, filename) -> "blockdev-change-medium", ["device", `String device; "filename", `String filename ]
-      | Device_add {driver; device} -> "device_add", (
+      | Device_add {driver; device} -> "device_add", ( ("driver", `String driver) ::
         match device with
         | Device.USB {id; params } -> (
           match params with
-          | None -> [ "driver", `String driver; "id", `String id ]
-          | Some {Device.USB.bus; hostbus; hostport} -> [ "driver", `String driver; "id", `String id; "bus", `String bus; "hostbus", `String hostbus; "hostport", `String hostport ]
+          | None -> [ "id", `String id ]
+          | Some {Device.USB.bus; hostbus; hostport} -> [ "id", `String id; "bus", `String bus; "hostbus", `String hostbus; "hostport", `String hostport ]
           )
+        | Device.VCPU {id; socket_id; core_id; thread_id } -> [ "id", `String id; "socket-id", `Int socket_id; "core-id", `Int core_id; "thread-id", `Int thread_id ]
       )
       | Device_del id -> "device_del", [ "id", `String id ]
       | Qom_list path -> "qom-list", ["path", `String path ]
