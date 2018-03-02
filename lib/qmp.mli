@@ -57,6 +57,7 @@ module Device : sig
       val string_of : t -> string
     end
     type t = { id: string; socket_id: int; core_id: int; thread_id: int; }
+    type hotpluggable_t = { driver_type: string; vcpus_count: int; props: t; qom_path: string option; }
   end
   type t = USB of USB.t | VCPU of VCPU.t
 end
@@ -73,6 +74,7 @@ type result =
   | Status of string
   | Vnc of vnc
   | Xen_platform_pv_driver_info of xen_platform_pv_driver_info
+  | Hotpluggable_cpus of Device.VCPU.hotpluggable_t list
   | Fd_info of fd_info
   | Unit
   | Qom of qom list
@@ -113,6 +115,7 @@ type command =
   | Query_status
   | Query_vnc
   | Query_xen_platform_pv_driver_info
+  | Query_hotpluggable_cpus
   | Stop
   | Cont
   | Eject of string * bool option

@@ -67,6 +67,8 @@ module Device = struct
       let all = List.map string_of [ QEMU32_I386_CPU ]
     end
     type t = { id: string; socket_id: int; core_id: int; thread_id: int; }
+    (* according to qapi schema at https://github.com/qemu/qemu/blob/master/qapi-schema.json#L3093 *)
+    type hotpluggable_t = { driver_type: string; vcpus_count: int; props: t; qom_path: string option; }
   end
   type t = USB of USB.t | VCPU of VCPU.t
 end
@@ -84,6 +86,7 @@ type command =
   | Query_status
   | Query_vnc
   | Query_xen_platform_pv_driver_info
+  | Query_hotpluggable_cpus
   | Stop
   | Cont
   | Eject of string * bool option
@@ -105,6 +108,7 @@ type result =
   | Status of string
   | Vnc of vnc
   | Xen_platform_pv_driver_info of xen_platform_pv_driver_info
+  | Hotpluggable_cpus of Device.VCPU.hotpluggable_t list
   | Fd_info of fd_info
   | Unit
   | Qom of qom list
@@ -265,6 +269,7 @@ let message_of_string str =
     | "query-vnc"                -> Query_vnc
     | "query-kvm"                -> Query_kvm
     | "query-xen-platform-pv-driver-info" -> Query_xen_platform_pv_driver_info
+    | "query-hotpluggable-cpus"  -> Query_hotpluggable_cpus
     | "eject"                    -> json |> eject  |> fun (x, y) -> Eject (x, y)
     | "change"                   -> json |> change |> fun (x, y, z) -> Change (x, y, z)
     | "add-fd"                   -> json |> add_fd |> fun x -> Add_fd x
@@ -310,12 +315,32 @@ let message_of_string str =
       let mem_of k x = x |> U.member k |> U.to_string in
       json |> U.convert_each (fun x -> {name = (mem_of "name" x); ty = (mem_of "type" x)})
     in
+    let hotpluggable_cpus json =
+      let vcpu_of json =
+        let socket_id = json |> U.member "socket-id" |> U.to_int in
+        let core_id   = json |> U.member "core-id"   |> U.to_int in
+        let thread_id = json |> U.member "thread-id" |> U.to_int in
+        let id        = try json |> U.member "id"    |> U.to_string
+          with _ -> (* adopt unique id if none is returned by qmp *)
+            Printf.sprintf "cpu-%d-%d-%d" socket_id core_id thread_id
+        in
+          Device.VCPU.{ id; socket_id; core_id; thread_id }
+      in
+      json |> U.convert_each (fun json ->
+        let driver_type = json |> U.member "type"        |> U.to_string in
+        let vcpus_count = json |> U.member "vcpus-count" |> U.to_int in
+        let props       = json |> U.member "props"       |> vcpu_of in
+        let qom_path    = json |> U.member "qom-path"    |> U.to_option U.to_string in
+        { Device.VCPU.driver_type; vcpus_count; props; qom_path }
+      )
+    in
     let result =
       let return = json |> U.member "return" in
       return |> function
       | `List  _ -> (return |> U.convert_each U.keys |> List.flatten |> function
         | x when x |> subset_of ["name"; "type"]  -> return |> qom |> fun x -> Qom x
         | x when x |> subset_of ["name"]  -> return |> name_list |> fun x -> Name_list x
+        | x when x |> subset_of ["type"; "vcpus-count"; "props"] -> return |> hotpluggable_cpus |> fun x -> Hotpluggable_cpus x
         | _ -> failwith (Printf.sprintf "unknown result %s" (Y.to_string return))
       )
       | `Assoc _ -> (return |> U.keys |> function
@@ -371,6 +396,7 @@ let json_of_message = function
       | Query_vnc -> "query-vnc", []
       | Query_kvm -> "query-kvm", []
       | Query_xen_platform_pv_driver_info -> "query-xen-platform-pv-driver-info", []
+      | Query_hotpluggable_cpus -> "query-hotpluggable-cpus" , []
       | Eject (device, None) -> "eject", [ "device", `String device ]
       | Eject (device, Some force) -> "eject", [ "device", `String device; "force", `Bool force ]
       | Change (device, target, None) -> "change", [ "device", `String device; "target", `String target ]
@@ -421,6 +447,16 @@ let json_of_message = function
       | Name_list xs -> `List (List.map (fun x -> `Assoc [ "name", `String x ]) xs)
       | Vnc {enabled; auth; family; service; host} -> `Assoc [ "enabled", `Bool enabled; "auth", `String auth; "family", `String family; "service", `String (string_of_int service); "host", `String host ]
       | Xen_platform_pv_driver_info { product_num; build_num } -> `Assoc [ "product-num", `Int product_num; "build-num", `Int build_num; ]
+      | Hotpluggable_cpus xs -> `List
+         (xs |> List.map
+           (fun { Device.VCPU.driver_type; vcpus_count; props; qom_path } ->
+             let { Device.VCPU.id; socket_id; core_id; thread_id } = props in
+             `Assoc ([ "type", `String driver_type; "vcpus-count", `Int vcpus_count; ]
+               @ (match qom_path with None -> [] | Some x -> [ "qom-path", `String x; ])
+               @ [ "props", `Assoc [ "id", `String id; "socket-id", `Int socket_id; "core-id", `Int core_id; "thread-id", `Int thread_id ]
+             ])
+           )
+         )
       | Fd_info {fd; fdset_id} -> `Assoc [ "fd", `Int fd; "fdset-id", `Int fdset_id ]
       | Qom xs -> `List (List.map (fun {name; ty} -> `Assoc [ "name", `String name; "type",`String ty ]) xs)
      in
