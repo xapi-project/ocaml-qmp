@@ -67,6 +67,8 @@ module Device = struct
       let all = List.map string_of [ QEMU32_I386_CPU ]
     end
     type t = { id: string; socket_id: int; core_id: int; thread_id: int; }
+    let id_of ~socket_id ~core_id ~thread_id =
+      Printf.sprintf "cpu-%d-%d-%d" socket_id core_id thread_id
     (* according to qapi schema at https://github.com/qemu/qemu/blob/master/qapi-schema.json#L3093 *)
     type hotpluggable_t = { driver_type: string; vcpus_count: int; props: t; qom_path: string option; }
   end
@@ -322,7 +324,7 @@ let message_of_string str =
         let thread_id = json |> U.member "thread-id" |> U.to_int in
         let id        = try json |> U.member "id"    |> U.to_string
           with _ -> (* adopt unique id if none is returned by qmp *)
-            Printf.sprintf "cpu-%d-%d-%d" socket_id core_id thread_id
+            Device.VCPU.id_of ~socket_id ~core_id ~thread_id
         in
           Device.VCPU.{ id; socket_id; core_id; thread_id }
       in
