@@ -47,16 +47,38 @@ type qom = {
   ty   : string;
 }
 
-type params = {
-  bus     : string;
-  hostbus : string;
-  hostport: string;
-}
+module Device = struct
+  module USB = struct
+    module Driver = struct
+      type t = USB_EHCI | USB_HOST
+      let string_of = function
+        | USB_EHCI -> "usb-ehci"
+        | USB_HOST -> "usb-host"
+      let all = List.map string_of [ USB_EHCI; USB_HOST ]
+    end
+    type params_t = { bus: string; hostbus: string; hostport: string; }
+    type t = { id: string; params: params_t option }
+  end
+  module VCPU = struct
+    module Driver = struct
+      type t = QEMU32_I386_CPU
+      let string_of = function
+        | QEMU32_I386_CPU -> "qemu32-i386-cpu"
+      let all = List.map string_of [ QEMU32_I386_CPU ]
+    end
+    type t = { id: string; socket_id: int; core_id: int; thread_id: int; }
+    let id_of ~socket_id ~core_id ~thread_id =
+      Printf.sprintf "cpu-%d-%d-%d" socket_id core_id thread_id
+    (* according to qapi schema at https://github.com/qemu/qemu/blob/master/qapi-schema.json#L3093 *)
+    type hotpluggable_t = { driver_type: string; vcpus_count: int; props: t; qom_path: string option; }
+  end
+  type t = USB of USB.t | VCPU of VCPU.t
+end
 
-type device = {
-  driver : string;
-  id     : string;
-  params : params option;
+(* according to qapi schema at https://github.com/qemu/qemu/blob/master/qapi-schema.json#L1478 *)
+type device_add_t = {
+  driver : string; (* only required field is driver *)
+  device : Device.t;
 }
 
 type command =
@@ -66,6 +88,7 @@ type command =
   | Query_status
   | Query_vnc
   | Query_xen_platform_pv_driver_info
+  | Query_hotpluggable_cpus
   | Stop
   | Cont
   | Eject of string * bool option
@@ -77,7 +100,7 @@ type command =
   | Add_fd of int option
   | Remove_fd of int
   | Blockdev_change_medium of string * string
-  | Device_add of string * string * (string * string * string) option
+  | Device_add of device_add_t
   | Device_del of string
   | Qom_list of string
 
@@ -87,6 +110,7 @@ type result =
   | Status of string
   | Vnc of vnc
   | Xen_platform_pv_driver_info of xen_platform_pv_driver_info
+  | Hotpluggable_cpus of Device.VCPU.hotpluggable_t list
   | Fd_info of fd_info
   | Unit
   | Qom of qom list
@@ -205,15 +229,31 @@ let message_of_string str =
     in
     let device_add json =
       let driver = json |> arguments |> U.member "driver" |> U.to_string in
-      let id     = json |> arguments |> U.member "id"     |> U.to_string in
-      let maybe_mem_of k x = x |> U.member k |> U.to_option U.to_string in
-      let params = json |> arguments |> fun x ->
-      match maybe_mem_of "bus" x, maybe_mem_of "hostbus" x, maybe_mem_of "hostport" x with
-        | Some bus, Some hostbus, Some hostport -> Some (bus, hostbus, hostport)
-        | None, None, None -> None
-        | _ -> failwith (Printf.sprintf "All of bus, hostbus, hostport fields are needed but only some passed in %s" (Y.to_string json))
+
+      let device_add_usb json =
+        let id     = json |> arguments |> U.member "id"     |> U.to_string in
+        let maybe_mem_of k x = x |> U.member k |> U.to_option U.to_string in
+        let params = json |> arguments |> fun x ->
+        match maybe_mem_of "bus" x, maybe_mem_of "hostbus" x, maybe_mem_of "hostport" x with
+          | Some bus, Some hostbus, Some hostport -> Some {Device.USB.bus; hostbus; hostport}
+          | None, None, None -> None
+          | _ -> failwith (Printf.sprintf "All of bus, hostbus, hostport fields are needed but only some passed in %s" (Y.to_string json))
+        in
+        Device.USB {id; params}
       in
-      (driver, id, params)
+      let device_add_vcpu json =
+        let id        = json |> arguments |> U.member "id"        |> U.to_string in
+        let socket_id = json |> arguments |> U.member "socket-id" |> U.to_int in
+        let core_id   = json |> arguments |> U.member "core-id"   |> U.to_int in
+        let thread_id = json |> arguments |> U.member "thread-id" |> U.to_int in
+        Device.VCPU { id; socket_id; core_id; thread_id}
+      in
+
+      (driver |> function
+        | x when Device.USB.Driver.all  |> List.mem x -> device_add_usb  json
+        | x when Device.VCPU.Driver.all |> List.mem x -> device_add_vcpu json
+        | _ -> failwith (Printf.sprintf "unknown driver %s" driver)
+      ) |> fun device -> { driver; device }
     in
     let device_del json =
       json |> arguments |> U.member "id" |> U.to_string
@@ -231,6 +271,7 @@ let message_of_string str =
     | "query-vnc"                -> Query_vnc
     | "query-kvm"                -> Query_kvm
     | "query-xen-platform-pv-driver-info" -> Query_xen_platform_pv_driver_info
+    | "query-hotpluggable-cpus"  -> Query_hotpluggable_cpus
     | "eject"                    -> json |> eject  |> fun (x, y) -> Eject (x, y)
     | "change"                   -> json |> change |> fun (x, y, z) -> Change (x, y, z)
     | "add-fd"                   -> json |> add_fd |> fun x -> Add_fd x
@@ -239,7 +280,7 @@ let message_of_string str =
     | "xen-load-devices-state"   -> json |> xen_load_devices_state   |> fun x -> Xen_load_devices_state x
     | "xen-set-global-dirty-log" -> json |> xen_set_global_dirty_log |> fun x -> Xen_set_global_dirty_log x
     | "blockdev-change-medium"   -> json |> blockdev_change_medium   |> fun (x, y) -> Blockdev_change_medium (x, y)
-    | "device_add"               -> json |> device_add               |> fun (x, y, z) -> Device_add (x, y, z)
+    | "device_add"               -> json |> device_add               |> fun x -> Device_add x
     | "device_del"               -> json |> device_del               |> fun x -> Device_del x
     | "qom-list"                 -> json |> qom_list                 |> fun x -> Qom_list x
     | x -> Printf.sprintf "unknown command %s" x |> failwith
@@ -276,12 +317,32 @@ let message_of_string str =
       let mem_of k x = x |> U.member k |> U.to_string in
       json |> U.convert_each (fun x -> {name = (mem_of "name" x); ty = (mem_of "type" x)})
     in
+    let hotpluggable_cpus json =
+      let vcpu_of json =
+        let socket_id = json |> U.member "socket-id" |> U.to_int in
+        let core_id   = json |> U.member "core-id"   |> U.to_int in
+        let thread_id = json |> U.member "thread-id" |> U.to_int in
+        let id        = try json |> U.member "id"    |> U.to_string
+          with _ -> (* adopt unique id if none is returned by qmp *)
+            Device.VCPU.id_of ~socket_id ~core_id ~thread_id
+        in
+          Device.VCPU.{ id; socket_id; core_id; thread_id }
+      in
+      json |> U.convert_each (fun json ->
+        let driver_type = json |> U.member "type"        |> U.to_string in
+        let vcpus_count = json |> U.member "vcpus-count" |> U.to_int in
+        let props       = json |> U.member "props"       |> vcpu_of in
+        let qom_path    = json |> U.member "qom-path"    |> U.to_option U.to_string in
+        { Device.VCPU.driver_type; vcpus_count; props; qom_path }
+      )
+    in
     let result =
       let return = json |> U.member "return" in
       return |> function
       | `List  _ -> (return |> U.convert_each U.keys |> List.flatten |> function
         | x when x |> subset_of ["name"; "type"]  -> return |> qom |> fun x -> Qom x
         | x when x |> subset_of ["name"]  -> return |> name_list |> fun x -> Name_list x
+        | x when x |> subset_of ["type"; "vcpus-count"; "props"] -> return |> hotpluggable_cpus |> fun x -> Hotpluggable_cpus x
         | _ -> failwith (Printf.sprintf "unknown result %s" (Y.to_string return))
       )
       | `Assoc _ -> (return |> U.keys |> function
@@ -337,6 +398,7 @@ let json_of_message = function
       | Query_vnc -> "query-vnc", []
       | Query_kvm -> "query-kvm", []
       | Query_xen_platform_pv_driver_info -> "query-xen-platform-pv-driver-info", []
+      | Query_hotpluggable_cpus -> "query-hotpluggable-cpus" , []
       | Eject (device, None) -> "eject", [ "device", `String device ]
       | Eject (device, Some force) -> "eject", [ "device", `String device; "force", `Bool force ]
       | Change (device, target, None) -> "change", [ "device", `String device; "target", `String target ]
@@ -347,10 +409,14 @@ let json_of_message = function
       | Add_fd id -> "add-fd", (match id with None -> [] | Some x -> [ "fdset-id", `Int x ])
       | Remove_fd id -> "remove-fd", ["fdset-id", `Int id]
       | Blockdev_change_medium (device, filename) -> "blockdev-change-medium", ["device", `String device; "filename", `String filename ]
-      | Device_add (driver, id, params) -> "device_add", (
-        match params with
-        | None -> [ "driver", `String driver; "id", `String id ]
-        | Some (x, y, z) -> [ "driver", `String driver; "id", `String id; "bus", `String x; "hostbus", `String y; "hostport", `String z ]
+      | Device_add {driver; device} -> "device_add", ( ("driver", `String driver) ::
+        match device with
+        | Device.USB {id; params } -> (
+          match params with
+          | None -> [ "id", `String id ]
+          | Some {Device.USB.bus; hostbus; hostport} -> [ "id", `String id; "bus", `String bus; "hostbus", `String hostbus; "hostport", `String hostport ]
+          )
+        | Device.VCPU {id; socket_id; core_id; thread_id } -> [ "id", `String id; "socket-id", `Int socket_id; "core-id", `Int core_id; "thread-id", `Int thread_id ]
       )
       | Device_del id -> "device_del", [ "id", `String id ]
       | Qom_list path -> "qom-list", ["path", `String path ]
@@ -383,6 +449,16 @@ let json_of_message = function
       | Name_list xs -> `List (List.map (fun x -> `Assoc [ "name", `String x ]) xs)
       | Vnc {enabled; auth; family; service; host} -> `Assoc [ "enabled", `Bool enabled; "auth", `String auth; "family", `String family; "service", `String (string_of_int service); "host", `String host ]
       | Xen_platform_pv_driver_info { product_num; build_num } -> `Assoc [ "product-num", `Int product_num; "build-num", `Int build_num; ]
+      | Hotpluggable_cpus xs -> `List
+         (xs |> List.map
+           (fun { Device.VCPU.driver_type; vcpus_count; props; qom_path } ->
+             let { Device.VCPU.id; socket_id; core_id; thread_id } = props in
+             `Assoc ([ "type", `String driver_type; "vcpus-count", `Int vcpus_count; ]
+               @ (match qom_path with None -> [] | Some x -> [ "qom-path", `String x; ])
+               @ [ "props", `Assoc [ "id", `String id; "socket-id", `Int socket_id; "core-id", `Int core_id; "thread-id", `Int thread_id ]
+             ])
+           )
+         )
       | Fd_info {fd; fdset_id} -> `Assoc [ "fd", `Int fd; "fdset-id", `Int fdset_id ]
       | Qom xs -> `List (List.map (fun {name; ty} -> `Assoc [ "name", `String name; "type",`String ty ]) xs)
      in

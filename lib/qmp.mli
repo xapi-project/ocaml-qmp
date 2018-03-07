@@ -42,16 +42,31 @@ type qom = {
   ty   : string;
 }
 
-type params = {
-  bus     : string;
-  hostbus : string;
-  hostport: string;
-}
+module Device : sig
+  module USB : sig
+    module Driver : sig
+      type t = USB_EHCI | USB_HOST
+      val string_of : t -> string
+    end
+    type params_t = { bus: string; hostbus: string; hostport: string; }
+    type t = { id: string; params: params_t option }
+  end
+  module VCPU : sig
+    module Driver : sig
+      type t = QEMU32_I386_CPU
+      val string_of : t -> string
+    end
+    type t = { id: string; socket_id: int; core_id: int; thread_id: int; }
+    val id_of : socket_id: int -> core_id: int -> thread_id: int -> string
+    type hotpluggable_t = { driver_type: string; vcpus_count: int; props: t; qom_path: string option; }
+  end
+  type t = USB of USB.t | VCPU of VCPU.t
+end
 
-type device = {
-  driver : string;
-  id     : string;
-  params : params option;
+(* according to qapi schema at https://github.com/qemu/qemu/blob/master/qapi-schema.json#L1478 *)
+type device_add_t = {
+  driver : string; (* only required field is driver *)
+  device : Device.t;
 }
 
 type result =
@@ -60,6 +75,7 @@ type result =
   | Status of string
   | Vnc of vnc
   | Xen_platform_pv_driver_info of xen_platform_pv_driver_info
+  | Hotpluggable_cpus of Device.VCPU.hotpluggable_t list
   | Fd_info of fd_info
   | Unit
   | Qom of qom list
@@ -100,6 +116,7 @@ type command =
   | Query_status
   | Query_vnc
   | Query_xen_platform_pv_driver_info
+  | Query_hotpluggable_cpus
   | Stop
   | Cont
   | Eject of string * bool option
@@ -111,7 +128,7 @@ type command =
   | Add_fd of int option
   | Remove_fd of int
   | Blockdev_change_medium of string * string
-  | Device_add of string * string * (string * string * string) option
+  | Device_add of device_add_t
   | Device_del of string
   | Qom_list of string
 (** commands that may be sent to qemu *)
