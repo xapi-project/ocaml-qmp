@@ -113,6 +113,7 @@ type id = string
 type medium =
   { medium_device:   string
   ; medium_filename: string
+  ; medium_format:   string option
   }
 
 type command =

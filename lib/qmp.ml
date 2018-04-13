@@ -84,6 +84,7 @@ type device_add_t = {
 type medium =
   { medium_device:   string
   ; medium_filename: string
+  ; medium_format:   string option
   }
 
 type command =
@@ -228,10 +229,10 @@ let message_of_string str =
       json |> arguments |> U.member "fdset-id" |> U.to_int
     in
     let blockdev_change_medium json =
-      let device   = json |> arguments |> U.member "device"   |> U.to_string in
-      let filename = json |> arguments |> U.member "filename" |> U.to_string in
-      { medium_device   = device
-      ; medium_filename = filename
+      let args = json |> arguments in
+      { medium_device   = args |> U.member "device"   |> U.to_string
+      ; medium_filename = args |> U.member "filename" |> U.to_string
+      ; medium_format   = args |> U.member "format"   |> U.to_option U.to_string
       }
     in
     let device_add json =
@@ -418,6 +419,16 @@ let json_of_message = function
       | Blockdev_change_medium
         { medium_filename = filename
         ; medium_device   = device
+        ; medium_format   = Some fmt
+        } -> "blockdev-change-medium",
+          [ "device"  , `String device
+          ; "filename", `String filename
+          ; "format",   `String fmt
+          ]
+      | Blockdev_change_medium
+        { medium_filename = filename
+        ; medium_device   = device
+        ; medium_format   = None
         } -> "blockdev-change-medium",
           [ "device"  , `String device
           ; "filename", `String filename
