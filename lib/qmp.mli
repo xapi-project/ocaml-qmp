@@ -109,6 +109,13 @@ type error = { cls : string; descr : string; }
 type id = string
 (** identifier used to match responses with original requests *)
 
+
+type medium =
+  { medium_device:   string
+  ; medium_filename: string
+  ; medium_format:   string option
+  }
+
 type command =
     Qmp_capabilities
   | Query_commands
@@ -127,7 +134,7 @@ type command =
   | Xen_set_global_dirty_log of bool
   | Add_fd of int option
   | Remove_fd of int
-  | Blockdev_change_medium of string * string
+  | Blockdev_change_medium of medium
   | Device_add of device_add_t
   | Device_del of string
   | Qom_list of string

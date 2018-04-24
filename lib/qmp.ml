@@ -81,6 +81,12 @@ type device_add_t = {
   device : Device.t;
 }
 
+type medium =
+  { medium_device:   string
+  ; medium_filename: string
+  ; medium_format:   string option
+  }
+
 type command =
   | Qmp_capabilities
   | Query_commands
@@ -99,7 +105,7 @@ type command =
   | Xen_set_global_dirty_log of bool
   | Add_fd of int option
   | Remove_fd of int
-  | Blockdev_change_medium of string * string
+  | Blockdev_change_medium of medium
   | Device_add of device_add_t
   | Device_del of string
   | Qom_list of string
@@ -223,9 +229,11 @@ let message_of_string str =
       json |> arguments |> U.member "fdset-id" |> U.to_int
     in
     let blockdev_change_medium json =
-      let device   = json |> arguments |> U.member "device"   |> U.to_string in
-      let filename = json |> arguments |> U.member "filename" |> U.to_string in
-      (device, filename)
+      let args = json |> arguments in
+      { medium_device   = args |> U.member "device"   |> U.to_string
+      ; medium_filename = args |> U.member "filename" |> U.to_string
+      ; medium_format   = args |> U.member "format"   |> U.to_option U.to_string
+      }
     in
     let device_add json =
       let driver = json |> arguments |> U.member "driver" |> U.to_string in
@@ -279,7 +287,7 @@ let message_of_string str =
     | "xen-save-devices-state"   -> json |> xen_save_devices_state   |> fun x -> Xen_save_devices_state x
     | "xen-load-devices-state"   -> json |> xen_load_devices_state   |> fun x -> Xen_load_devices_state x
     | "xen-set-global-dirty-log" -> json |> xen_set_global_dirty_log |> fun x -> Xen_set_global_dirty_log x
-    | "blockdev-change-medium"   -> json |> blockdev_change_medium   |> fun (x, y) -> Blockdev_change_medium (x, y)
+    | "blockdev-change-medium"   -> json |> blockdev_change_medium   |> fun x -> Blockdev_change_medium x
     | "device_add"               -> json |> device_add               |> fun x -> Device_add x
     | "device_del"               -> json |> device_del               |> fun x -> Device_del x
     | "qom-list"                 -> json |> qom_list                 |> fun x -> Qom_list x
@@ -408,7 +416,23 @@ let json_of_message = function
       | Xen_set_global_dirty_log enable -> "xen-set-global-dirty-log", [ "enable", `Bool enable ]
       | Add_fd id -> "add-fd", (match id with None -> [] | Some x -> [ "fdset-id", `Int x ])
       | Remove_fd id -> "remove-fd", ["fdset-id", `Int id]
-      | Blockdev_change_medium (device, filename) -> "blockdev-change-medium", ["device", `String device; "filename", `String filename ]
+      | Blockdev_change_medium
+        { medium_filename = filename
+        ; medium_device   = device
+        ; medium_format   = Some fmt
+        } -> "blockdev-change-medium",
+          [ "device"  , `String device
+          ; "filename", `String filename
+          ; "format",   `String fmt
+          ]
+      | Blockdev_change_medium
+        { medium_filename = filename
+        ; medium_device   = device
+        ; medium_format   = None
+        } -> "blockdev-change-medium",
+          [ "device"  , `String device
+          ; "filename", `String filename
+          ]
       | Device_add {driver; device} -> "device_add", ( ("driver", `String driver) ::
         match device with
         | Device.USB {id; params } -> (
