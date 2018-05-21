@@ -20,8 +20,13 @@ let connect path =
   Printf.fprintf stderr "Connecting to %s\n%!" path;
   let sockaddr = Unix.ADDR_UNIX path in
   let s = Unix.socket Unix.PF_UNIX Unix.SOCK_STREAM 0 in
-  Unix.connect s sockaddr;
-  s, Unix.in_channel_of_descr s, Unix.out_channel_of_descr s
+  try
+    Unix.connect s sockaddr;
+    s, Unix.in_channel_of_descr s, Unix.out_channel_of_descr s
+  with e ->
+    Printf.fprintf stderr "Unix.connect to %s failed with %s\n%!" path (Printexc.to_string e);
+    Unix.close s;
+    raise e
 
 let to_fd (fd, _, _) = fd
 
