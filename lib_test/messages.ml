@@ -49,7 +49,7 @@ let files = [
   "add-fd-return.json",            Success (None, Fd_info { fdset_id=4; fd=21; });
   "add-fd-return-error-notanint.json", Error (None, { cls="JSONParsing"; descr="Expected int, got string \"foo\" in {\"return\": {\"fd\": \"foo\", \"fdset-id\": 4}}"; });
   "remove-fd.json",                Command (None, Remove_fd 4);
-  "blockdev-change-medium.json",   Command (None, Blockdev_change_medium ("ide1-cd0", "/dev/fd/21"));
+  "blockdev-change-medium.json",   Command (None, Blockdev_change_medium {medium_device="ide1-cd0"; medium_filename="/dev/fd/21"; medium_format=None});
   "query-xen-platform-pv-driver-info.json", Command (None, Query_xen_platform_pv_driver_info);
   "query-xen-platform-pv-driver-info-result.json", Success (None, Xen_platform_pv_driver_info { product_num=3; build_num=1; });
   "query-xen-platform-pv-driver-info-result-error-notanint.json", Error (None, { cls="JSONParsing"; descr="Expected int, got string \"foo\" in {\"return\": {\"product-num\": \"foo\", \"build-num\": 1}}"; });
