@@ -36,6 +36,8 @@ let files = [
   "query-status-result.json",      Success (None, Status "running");
   "query-vnc.json",                Command (None, Query_vnc);
   "query-vnc-result.json",         Success (None, Vnc {enabled=true; auth="none"; family="ipv4"; service=6034; host="127.0.0.1"});
+  "query-migratable.json",         Command (None, Query_migratable);
+  "query-migratable-error.json",   Error (None, { cls = "GenericError"; descr = "State blocked by non-migratable device '0000:00:07.0/nvme'" });
   "event-block-io-error.json",     Event { timestamp = (1265044230, 450480); event = "BLOCK_IO_ERROR"; data = None };
   "event-rtc-change.json",         Event { timestamp = (1267020223, 435656); event = "RTC_CHANGE"; data = Some (RTC_CHANGE 78L) };
   "event-xen-platform-pv-driver-info.json",

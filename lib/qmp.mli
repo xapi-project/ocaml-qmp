@@ -124,6 +124,7 @@ type command =
   | Query_vnc
   | Query_xen_platform_pv_driver_info
   | Query_hotpluggable_cpus
+  | Query_migratable
   | Stop
   | Cont
   | Eject of string * bool option

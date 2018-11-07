@@ -95,6 +95,7 @@ type command =
   | Query_vnc
   | Query_xen_platform_pv_driver_info
   | Query_hotpluggable_cpus
+  | Query_migratable
   | Stop
   | Cont
   | Eject of string * bool option
@@ -280,6 +281,7 @@ let message_of_string str =
     | "query-kvm"                -> Query_kvm
     | "query-xen-platform-pv-driver-info" -> Query_xen_platform_pv_driver_info
     | "query-hotpluggable-cpus"  -> Query_hotpluggable_cpus
+    | "query-migratable"         -> Query_migratable
     | "eject"                    -> json |> eject  |> fun (x, y) -> Eject (x, y)
     | "change"                   -> json |> change |> fun (x, y, z) -> Change (x, y, z)
     | "add-fd"                   -> json |> add_fd |> fun x -> Add_fd x
@@ -407,6 +409,7 @@ let json_of_message = function
       | Query_kvm -> "query-kvm", []
       | Query_xen_platform_pv_driver_info -> "query-xen-platform-pv-driver-info", []
       | Query_hotpluggable_cpus -> "query-hotpluggable-cpus" , []
+      | Query_migratable -> "query-migratable", []
       | Eject (device, None) -> "eject", [ "device", `String device ]
       | Eject (device, Some force) -> "eject", [ "device", `String device; "force", `Bool force ]
       | Change (device, target, None) -> "change", [ "device", `String device; "target", `String target ]
