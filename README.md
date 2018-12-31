@@ -8,15 +8,15 @@ OCaml implementation of the Qemu Monitor Protocol (QMP)
 Install the dependencies using OPAM:
 
 ```sh
-opam install yojson cmdliner jbuilder ounit
+opam install yojson cmdliner dune ounit
 ```
 
 Build the library, tests, and CLI:
 
 ```sh
-jbuilder build
-jbuilder runtest
-jbuilder install
+dune build
+dune runtest
+dune install
 ```
 
 ## Building from Sources using Opam
@@ -35,7 +35,4 @@ qmp-cli
 
 Before installation the binary is located in
 `_build/default/cli/cli.exe`. It will get installed under the correct
-name `qmp-cli` by `jbuiler install`
-
-
-
+name `qmp-cli` by `dune install`
