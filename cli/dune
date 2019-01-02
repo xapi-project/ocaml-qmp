@@ -1,0 +1,6 @@
+(executable
+  (name cli)
+  (public_name qmp-cli)
+  (package qmp)
+  (libraries libqmp cmdliner)
+)

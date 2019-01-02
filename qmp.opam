@@ -8,13 +8,13 @@ tags: [
   "org:xapi-project"
 ]
 build: [
-  ["jbuilder" "build" "-p" name "-j" jobs]
-  ["jbuilder" "runtest" "-p" name "-j" jobs] {with-test}
+  ["dune" "build" "-p" name "-j" jobs]
+  ["dune" "runtest" "-p" name "-j" jobs] {with-test}
 ]
 depends: [
   "ocaml"
   "base-unix"
-  "jbuilder" {build}
+  "dune" {build}
   "yojson"
   "cmdliner"
   "ounit" {with-test}

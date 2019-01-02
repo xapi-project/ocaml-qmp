@@ -1,0 +1,10 @@
+(alias
+  (name runtest)
+  (deps (:x messages.exe) (glob_files *.json))
+  (action (run %{x}))
+)
+
+(executable
+  (name messages)
+  (libraries libqmp oUnit)
+)

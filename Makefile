@@ -4,13 +4,27 @@
 # convenience during development
 #
 
-JB 	= jbuilder
+PROFILE=release
 
-all:
-	$(JB) build @install -j $$(getconf _NPROCESSORS_ONLN)
+.PHONY: build install uninstall clean test doc reindent
+
+build:
+	dune build @install --profile=$(PROFILE)
 
 install:
-	$(JB) install
+	dune install
+
+uninstall:
+	dune uninstall
 
 clean:
-	$(JB) clean
+	dune clean
+
+test:
+	dune runtest --profile=$(PROFILE)
+
+doc:
+	dune build @doc --profile=$(PROFILE)
+
+reindent:
+	ocp-indent --inplace **/*.ml*
