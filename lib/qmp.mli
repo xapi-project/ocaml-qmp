@@ -60,7 +60,14 @@ module Device : sig
     val id_of : socket_id: int -> core_id: int -> thread_id: int -> string
     type hotpluggable_t = { driver_type: string; vcpus_count: int; props: t; qom_path: string option; }
   end
-  type t = USB of USB.t | VCPU of VCPU.t
+  module PCI : sig
+    module Driver : sig
+      type t = XEN_PCI_PASSTHROUGH
+      val string_of : t -> string
+    end
+    type t = {id: string; bus: string; hostaddr: string; permissive: bool;}
+  end
+  type t = USB of USB.t | VCPU of VCPU.t | PCI of PCI.t
 end
 
 (* according to qapi schema at https://github.com/qemu/qemu/blob/master/qapi-schema.json#L1478 *)
@@ -125,6 +132,7 @@ type command =
   | Query_xen_platform_pv_driver_info
   | Query_hotpluggable_cpus
   | Query_migratable
+  | Query_pci
   | Stop
   | Cont
   | Eject of string * bool option

@@ -69,13 +69,22 @@ module Device = struct
     type t = { id: string; socket_id: int; core_id: int; thread_id: int; }
     let id_of ~socket_id ~core_id ~thread_id =
       Printf.sprintf "cpu-%d-%d-%d" socket_id core_id thread_id
-    (* according to qapi schema at https://github.com/qemu/qemu/blob/master/qapi-schema.json#L3093 *)
+    (* according to qapi schema at https://github.com/qemu/qemu/blob/master/qapi/misc.json#L2947 *)
     type hotpluggable_t = { driver_type: string; vcpus_count: int; props: t; qom_path: string option; }
   end
-  type t = USB of USB.t | VCPU of VCPU.t
+  module PCI = struct
+    module Driver = struct
+      type t = XEN_PCI_PASSTHROUGH
+      let string_of = function
+        | XEN_PCI_PASSTHROUGH -> "Xen-pci-passthrough"
+      let all = List.map string_of [XEN_PCI_PASSTHROUGH]
+    end
+    type t = { id: string; bus: string; hostaddr: string; permissive: bool; }
+  end
+  type t = USB of USB.t | VCPU of VCPU.t | PCI of PCI.t
 end
 
-(* according to qapi schema at https://github.com/qemu/qemu/blob/master/qapi-schema.json#L1478 *)
+(* according to qapi schema at https://github.com/qemu/qemu/blob/master/qapi/misc.json#L1628 *)
 type device_add_t = {
   driver : string; (* only required field is driver *)
   device : Device.t;
@@ -96,6 +105,7 @@ type command =
   | Query_xen_platform_pv_driver_info
   | Query_hotpluggable_cpus
   | Query_migratable
+  | Query_pci
   | Stop
   | Cont
   | Eject of string * bool option
@@ -258,9 +268,19 @@ let message_of_string str =
         Device.VCPU { id; socket_id; core_id; thread_id}
       in
 
+      let device_add_pci json =
+    (* type t = { id: string; bus: string; hostaddr: string; }*)
+        let id = json         |> arguments |> U.member "id"         |> U.to_string in
+        let bus = json        |> arguments |> U.member "bus"        |> U.to_string in
+        let hostaddr = json   |> arguments |> U.member "hostaddr"   |> U.to_string in
+        let permissive = json |> arguments |> U.member "permissive" |> U.to_bool in
+        Device.PCI {id; bus; hostaddr; permissive; }
+      in
+
       (driver |> function
         | x when Device.USB.Driver.all  |> List.mem x -> device_add_usb  json
         | x when Device.VCPU.Driver.all |> List.mem x -> device_add_vcpu json
+        | x when Device.PCI.Driver.all  |> List.mem x -> device_add_pci json
         | _ -> failwith (Printf.sprintf "unknown driver %s" driver)
       ) |> fun device -> { driver; device }
     in
@@ -410,6 +430,7 @@ let json_of_message = function
       | Query_xen_platform_pv_driver_info -> "query-xen-platform-pv-driver-info", []
       | Query_hotpluggable_cpus -> "query-hotpluggable-cpus" , []
       | Query_migratable -> "query-migratable", []
+      | Query_pci -> "query-pci", []
       | Eject (device, None) -> "eject", [ "device", `String device ]
       | Eject (device, Some force) -> "eject", [ "device", `String device; "force", `Bool force ]
       | Change (device, target, None) -> "change", [ "device", `String device; "target", `String target ]
@@ -444,6 +465,7 @@ let json_of_message = function
           | Some {Device.USB.bus; hostbus; hostport} -> [ "id", `String id; "bus", `String bus; "hostbus", `String hostbus; "hostport", `String hostport ]
           )
         | Device.VCPU {id; socket_id; core_id; thread_id } -> [ "id", `String id; "socket-id", `Int socket_id; "core-id", `Int core_id; "thread-id", `Int thread_id ]
+        | Device.PCI { id; bus; hostaddr; permissive; } -> [ "id", `String id ; "bus", `String bus; "hostaddr", `String hostaddr; "permissive", `Bool permissive ]
       )
       | Device_del id -> "device_del", [ "id", `String id ]
       | Qom_list path -> "qom-list", ["path", `String path ]
