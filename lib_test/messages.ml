@@ -61,7 +61,7 @@ let files = [
   "device_add_usbcontroller.json", Command (None, Device_add { driver=Device.USB.Driver.(string_of USB_EHCI); device=USB { id="ehci"; params=None}});
   "device_add_usbdevice.json",     Command (None, Device_add { driver=Device.USB.Driver.(string_of USB_HOST); device=USB { id="usb1"; params=Some { bus="ehci.0"; hostbus="2"; hostport="2"}}});
   "device_add_vcpu.json",          Command (None, Device_add { driver=Device.VCPU.Driver.(string_of QEMU32_I386_CPU); device=VCPU {id="cpu-1-2-0";socket_id=1;core_id=2;thread_id=0}});
-  "device_add_pci.json",            Command (None, Device_add { driver=Device.PCI.Driver.(string_of XEN_PCI_PASSTHROUGH); device=PCI {id="pci"; bus="0"; hostaddr="some_address"; permissive=true }});
+  "device_add_pci.json",            Command (None, Device_add { driver=Device.PCI.Driver.(string_of XEN_PCI_PASSTHROUGH); device=PCI {id="pci"; dev=0; fn=0; hostaddr="some_address"; permissive=true }});
   "qom_list_peripheral.json",      Command (None, Qom_list "/machine/peripheral");
   "qom_list_peripheral_result.json", Success (None, Qom [{name="usb1"; ty="child"}; {name="type"; ty="string"}]);
 ]

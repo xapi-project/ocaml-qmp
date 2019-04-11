@@ -76,10 +76,10 @@ module Device = struct
     module Driver = struct
       type t = XEN_PCI_PASSTHROUGH
       let string_of = function
-        | XEN_PCI_PASSTHROUGH -> "Xen-pci-passthrough"
+        | XEN_PCI_PASSTHROUGH -> "xen-pci-passthrough"
       let all = List.map string_of [XEN_PCI_PASSTHROUGH]
     end
-    type t = { id: string; bus: string; hostaddr: string; permissive: bool; }
+    type t = { id: string; dev: int; fn:int; hostaddr: string; permissive: bool; }
   end
   type t = USB of USB.t | VCPU of VCPU.t | PCI of PCI.t
 end
@@ -269,12 +269,12 @@ let message_of_string str =
       in
 
       let device_add_pci json =
-    (* type t = { id: string; bus: string; hostaddr: string; }*)
-        let id = json         |> arguments |> U.member "id"         |> U.to_string in
-        let bus = json        |> arguments |> U.member "bus"        |> U.to_string in
-        let hostaddr = json   |> arguments |> U.member "hostaddr"   |> U.to_string in
-        let permissive = json |> arguments |> U.member "permissive" |> U.to_bool in
-        Device.PCI {id; bus; hostaddr; permissive; }
+        let id          = json |> arguments |> U.member "id"         |> U.to_string in
+        let dev         = json |> arguments |> U.member "dev"        |> U.to_int in
+        let fn          = json |> arguments |> U.member "fn"         |> U.to_int in
+        let hostaddr    = json |> arguments |> U.member "hostaddr"   |> U.to_string in
+        let permissive  = json |> arguments |> U.member "permissive" |> U.to_bool in
+        Device.PCI {id; dev; fn; hostaddr; permissive; }
       in
 
       (driver |> function
@@ -465,7 +465,7 @@ let json_of_message = function
           | Some {Device.USB.bus; hostbus; hostport} -> [ "id", `String id; "bus", `String bus; "hostbus", `String hostbus; "hostport", `String hostport ]
           )
         | Device.VCPU {id; socket_id; core_id; thread_id } -> [ "id", `String id; "socket-id", `Int socket_id; "core-id", `Int core_id; "thread-id", `Int thread_id ]
-        | Device.PCI { id; bus; hostaddr; permissive; } -> [ "id", `String id ; "bus", `String bus; "hostaddr", `String hostaddr; "permissive", `Bool permissive ]
+        | Device.PCI { id; dev; fn; hostaddr; permissive; } -> [ "id", `String id ; "dev", `Int dev; "fn", `Int fn; "hostaddr", `String hostaddr; "permissive", `Bool permissive ]
       )
       | Device_del id -> "device_del", [ "id", `String id ]
       | Qom_list path -> "qom-list", ["path", `String path ]
