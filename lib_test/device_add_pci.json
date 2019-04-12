@@ -1,0 +1,1 @@
+{ "execute": "device_add", "arguments":{"driver":"xen-pci-passthrough","id":"pci","dev":0, "fn":0, "hostaddr":"some_address", "permissive":true}}
