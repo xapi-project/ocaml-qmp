@@ -270,8 +270,8 @@ let message_of_string str =
 
       let device_add_pci json =
         let id          = json |> arguments |> U.member "id"         |> U.to_string in
-        let dev         = json |> arguments |> U.member "dev"        |> U.to_int in
-        let fn          = json |> arguments |> U.member "fn"         |> U.to_int in
+        let addr        = json |> arguments |> U.member "addr"       |> U.to_string in
+        Scanf.sscanf addr "%x.%x" @@ fun dev fn ->
         let hostaddr    = json |> arguments |> U.member "hostaddr"   |> U.to_string in
         let permissive  = json |> arguments |> U.member "permissive" |> U.to_bool in
         Device.PCI {id; dev; fn; hostaddr; permissive; }
@@ -465,7 +465,9 @@ let json_of_message = function
           | Some {Device.USB.bus; hostbus; hostport} -> [ "id", `String id; "bus", `String bus; "hostbus", `String hostbus; "hostport", `String hostport ]
           )
         | Device.VCPU {id; socket_id; core_id; thread_id } -> [ "id", `String id; "socket-id", `Int socket_id; "core-id", `Int core_id; "thread-id", `Int thread_id ]
-        | Device.PCI { id; dev; fn; hostaddr; permissive; } -> [ "id", `String id ; "dev", `Int dev; "fn", `Int fn; "hostaddr", `String hostaddr; "permissive", `Bool permissive ]
+        | Device.PCI { id; dev; fn; hostaddr; permissive; } ->
+          let addr = Printf.sprintf "%x.%x" dev fn in
+          [ "id", `String id ; "addr", `String addr; "hostaddr", `String hostaddr; "permissive", `Bool permissive ]
       )
       | Device_del id -> "device_del", [ "id", `String id ]
       | Qom_list path -> "qom-list", ["path", `String path ]

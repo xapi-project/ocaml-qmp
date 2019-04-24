@@ -97,11 +97,11 @@ type greeting = {
 
 type event_data =
 
-    (** emitted when the guest changes the RTC time *)
   | RTC_CHANGE of int64
+    (** emitted when the guest changes the RTC time *)
 
-    (** emitted when the XEN PV driver writes build number to io-port 0x10, marking the end of the preamble *)
   | XEN_PLATFORM_PV_DRIVER_INFO of xen_platform_pv_driver_info
+    (** emitted when the XEN PV driver writes build number to io-port 0x10, marking the end of the preamble *)
 
    (* extend this to support other qmp events data*)
 
@@ -162,4 +162,4 @@ val _JSONParsing : string
 val message_of_string : string -> message
 val string_of_message : message -> string
 
-val json_of_message : message -> Yojson.Safe.json
+val json_of_message : message -> Yojson.Safe.t
