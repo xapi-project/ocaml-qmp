@@ -65,7 +65,7 @@ module Device : sig
       type t = XEN_PCI_PASSTHROUGH
       val string_of : t -> string
     end
-    type t = {id: string; dev: int; fn: int; hostaddr: string; permissive: bool;}
+    type t = {id: string; devfn: (int * int) option; hostaddr: string; permissive: bool;}
   end
   type t = USB of USB.t | VCPU of VCPU.t | PCI of PCI.t
 end
