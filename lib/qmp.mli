@@ -35,6 +35,12 @@ type fd_info = {
   fdset_id : int;
 }
 
+type char_device = {
+  label         : string;
+  filename      : string;
+  frontend_open : bool;
+}
+
 (** QOM properties - https://wiki.qemu.org/index.php/Documentation
                      https://qemu.weilnetz.de/doc/qemu-qmp-ref.html*)
 type qom = {
@@ -86,6 +92,8 @@ type result =
   | Fd_info of fd_info
   | Unit
   | Qom of qom list
+  | Char_devices of char_device list
+
 (** A successful RPC result *)
 
 type greeting = {
@@ -133,6 +141,7 @@ type command =
   | Query_hotpluggable_cpus
   | Query_migratable
   | Query_pci
+  | Query_chardev
   | Stop
   | Cont
   | Eject of string * bool option

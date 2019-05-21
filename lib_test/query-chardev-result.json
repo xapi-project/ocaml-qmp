@@ -1,0 +1,15 @@
+{
+  "return": [
+    {
+      "label": "monitor",
+      "filename": "stdio",
+      "frontend-open": true
+
+    },
+    {
+      "label": "serial0",
+      "filename": "vc",
+      "frontend-open": false
+    }
+  ]
+}
