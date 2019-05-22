@@ -42,6 +42,13 @@ type fd_info = {
   fdset_id : int;
 }
 
+type char_device = {
+  label         : string;
+  filename      : string;
+  frontend_open : bool;
+}
+
+
 type qom = {
   name : string;
   ty   : string;
@@ -106,6 +113,7 @@ type command =
   | Query_hotpluggable_cpus
   | Query_migratable
   | Query_pci
+  | Query_chardev
   | Stop
   | Cont
   | Eject of string * bool option
@@ -131,6 +139,7 @@ type result =
   | Fd_info of fd_info
   | Unit
   | Qom of qom list
+  | Char_devices of char_device list
 
 type event_data =
   | RTC_CHANGE of int64
@@ -301,6 +310,7 @@ let message_of_string str =
     | "query-status"             -> Query_status
     | "query-vnc"                -> Query_vnc
     | "query-kvm"                -> Query_kvm
+    | "query-chardev"            -> Query_chardev
     | "query-xen-platform-pv-driver-info" -> Query_xen_platform_pv_driver_info
     | "query-hotpluggable-cpus"  -> Query_hotpluggable_cpus
     | "query-migratable"         -> Query_migratable
@@ -345,6 +355,15 @@ let message_of_string str =
       let fdset_id = json |> U.member "fdset-id" |> U.to_int in
       {fd; fdset_id}
     in
+    let char_devices json =
+      let device json =
+        { label         = json |> U.member "label"         |> U.to_string
+        ; filename      = json |> U.member "filename"      |> U.to_string
+        ; frontend_open = json |> U.member "frontend-open" |> U.to_bool
+        }
+      in
+        json |> U.convert_each device
+    in
     let qom json =
       let mem_of k x = x |> U.member k |> U.to_string in
       json |> U.convert_each (fun x -> {name = (mem_of "name" x); ty = (mem_of "type" x)})
@@ -375,6 +394,8 @@ let message_of_string str =
         | x when x |> subset_of ["name"; "type"]  -> return |> qom |> fun x -> Qom x
         | x when x |> subset_of ["name"]  -> return |> name_list |> fun x -> Name_list x
         | x when x |> subset_of ["type"; "vcpus-count"; "props"] -> return |> hotpluggable_cpus |> fun x -> Hotpluggable_cpus x
+        | x when x |> subset_of ["label"; "filename"; "frontend-open"] ->
+            return |> char_devices |> fun xs -> Char_devices xs
         | _ -> failwith (Printf.sprintf "unknown result %s" (Y.to_string return))
       )
       | `Assoc _ -> (return |> U.keys |> function
@@ -433,6 +454,7 @@ let json_of_message = function
       | Query_hotpluggable_cpus -> "query-hotpluggable-cpus" , []
       | Query_migratable -> "query-migratable", []
       | Query_pci -> "query-pci", []
+      | Query_chardev -> "query-chardev", []
       | Eject (device, None) -> "eject", [ "device", `String device ]
       | Eject (device, Some force) -> "eject", [ "device", `String device; "force", `Bool force ]
       | Change (device, target, None) -> "change", [ "device", `String device; "target", `String target ]
@@ -516,6 +538,10 @@ let json_of_message = function
          )
       | Fd_info {fd; fdset_id} -> `Assoc [ "fd", `Int fd; "fdset-id", `Int fdset_id ]
       | Qom xs -> `List (List.map (fun {name; ty} -> `Assoc [ "name", `String name; "type",`String ty ]) xs)
+      | Char_devices xs -> `List (xs |> List.map (fun {label;filename;frontend_open} ->
+          `Assoc ["label", `String label
+                 ; "filename", `String filename
+                 ; "frontend-open", `Bool frontend_open]))
      in
     `Assoc (("return", result) :: id)
   | Error(id, e) ->

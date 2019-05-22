@@ -36,6 +36,14 @@ let files = [
   "query-status-result.json",      Success (None, Status "running");
   "query-vnc.json",                Command (None, Query_vnc);
   "query-vnc-result.json",         Success (None, Vnc {enabled=true; auth="none"; family="ipv4"; service=6034; host="127.0.0.1"});
+  "query-chardev.json",            Command (None, Query_chardev);
+  "query-chardev-result.json",     Success (None, Char_devices
+                                    [{ label="monitor"
+                                     ; filename="stdio"
+                                     ; frontend_open=true}
+                                    ;{ label="serial0"
+                                     ; filename = "vc"
+                                     ; frontend_open=false}]);
   "query-migratable.json",         Command (None, Query_migratable);
   "query-migratable-error.json",   Error (None, { cls = "GenericError"; descr = "State blocked by non-migratable device '0000:00:07.0/nvme'" });
   "event-block-io-error.json",     Event { timestamp = (1265044230, 450480); event = "BLOCK_IO_ERROR"; data = None };
