@@ -6,5 +6,5 @@
 
 (executable
   (name messages)
-  (libraries libqmp oUnit)
+  (libraries libqmp ounit2)
 )

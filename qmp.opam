@@ -18,7 +18,7 @@ depends: [
   "dune" {build}
   "yojson"
   "cmdliner"
-  "ounit" {with-test}
+  "ounit2" {with-test}
 ]
 dev-repo: "git://github.com/xapi-project/ocaml-qmp"
 synopsis: "OCaml implementation of a Qemu Message Protocol (QMP) client"
