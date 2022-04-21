@@ -8,7 +8,7 @@ OCaml implementation of the Qemu Monitor Protocol (QMP)
 Install the dependencies using OPAM:
 
 ```sh
-opam install yojson cmdliner dune ounit
+opam install yojson cmdliner dune ounit2
 ```
 
 Build the library, tests, and CLI:
