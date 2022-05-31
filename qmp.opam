@@ -16,7 +16,7 @@ depends: [
   "ocaml"
   "base-unix"
   "dune" {build}
-  "yojson"
+  "yojson" {>= "1.6.0"}
   "cmdliner"
   "ounit2" {with-test}
 ]
