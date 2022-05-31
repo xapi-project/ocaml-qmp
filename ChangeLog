@@ -1,4 +1,47 @@
-0.10.0 (30-Aug-2017) 
+## 0.19.0 (2022-06-06)
+* Add license to opam metadata
+* use ounit2 
+* Bump minimal dependency version of Yojson
+
+## 0.18.0 (2019-05-22)
+* CA-318579 add "query-chardev" command 
+
+## 0.17.0 (2019-07-07)
+* CP-30136: allow optional guest PCI address
+
+## 0.16.0 (2019-04-24)
+* CP-30136: Adding pci device functions
+* Fix build warnings 
+
+## 0.15.1 (2019-01-02)
+* Move from jbuilder to dune.
+
+## 0.15.0 (2018-11-07)
+* CA-289145: Close socket if error occurs when connecting 
+* CA-289145: fix unit tests
+* CP-29936: add query-migratable QMP command
+
+## 0.14.0 (2018-04-24)
+* CA-287881 introduce top-level Makefile
+* CA-287881 introduce record type for medium
+* CA-287881 add format field in blockdev-change-medium 
+
+## 0.13.0 (2018-03-07)
+* CP-27111: implement QMP device_add command according to specification
+* CP-27111: implement QMP query-hotpluggable-cpus command
+* CP-27111: add Qmp.Device.VCPU.id_of to the public interface
+
+## 0.12.0 (2017-09-29)
+* CP-24774: Parse XEN_PLATFORM_PV_DRIVER_INFO QMP event message
+* CP-24774: Remove unused Event._XEN_PLATFORM_PV_DRIVER_INFO event name constant
+
+## 0.11.0 (2017-09-19)
+* CP-24312: Add device_del command
+* CP-24312: Add qom-list command to list QOM properties. 
+* CP-24090: Respond to RTC_CHANGE QMP message 
+* CP-24090: Change type of offset to Int64
+
+## 0.10.0 (2017-08-30) 
 * Port to jbuilder build tool
 * CP-23007: Add support for add-fd and remove-fd QMP message
 * CA-261854: simplify JSON decoding using JSON combinators
@@ -18,14 +61,14 @@
 * cli: Rename cli binary to qmp-cli
 * oasis: Regenerate build files using '-setup-update dynamic'
 
-0.9.3 (28-Oct-2015):
+## 0.9.3 (2015-10-28):
 * Package is now built using Oasis
 
-0.9.1 (09-Aug-2013):
+## 0.9.1 (2013-08-09):
 * Change representation of message timestamps from a tuple of ints to
   a float.  This avoids problems on 32-bit architectures and  follows
   the example of the OCaml standard library.
 
-0.9.0 (29-May-2013):
+## 0.9.0 (2013-05-29):
 * first public release
 
