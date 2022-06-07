@@ -20,7 +20,7 @@ depends: [
   "cmdliner"
   "ounit2" {with-test}
 ]
-dev-repo: "git://github.com/xapi-project/ocaml-qmp"
+dev-repo: "git+https://github.com/xapi-project/ocaml-qmp"
 synopsis: "OCaml implementation of a Qemu Message Protocol (QMP) client"
 url {
   src: "https://github.com/xapi-project/ocaml-qmp/archive/0.14.0.tar.gz"

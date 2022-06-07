@@ -2,6 +2,7 @@
 * Add license to opam metadata
 * use ounit2 
 * Bump minimal dependency version of Yojson
+* opam: change dev-repo protocol
 
 ## 0.18.0 (2019-05-22)
 * CA-318579 add "query-chardev" command 
